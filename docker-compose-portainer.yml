@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Base de datos MongoDB
+  mongodb:
+    image: mongo:7.0
+    container_name: bioelectron-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    environment:
+      MONGO_INITDB_DATABASE: bioelectronCursosDB
+    networks:
+      - bioelectron-network
+
+  # Aplicación principal
+  app:
+    image: bioelectron-app:latest
+    container_name: bioelectron-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"  # Frontend React
+      - "5000:5000"  # Backend API
+    volumes:
+      - uploads_data:/app/server/uploads
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/bioelectronCursosDB
+      - PORT=5000
+      - JWT_SECRET=tu-clave-secreta-aqui-cambiar
+      - NODE_ENV=production
+    depends_on:
+      - mongodb
+    networks:
+      - bioelectron-network
+
+# Volúmenes para persistencia de datos
+volumes:
+  mongodb_data:
+  uploads_data:
+  mongodb_config:
+
+# Red personalizada
+networks:
+  bioelectron-network:
+    driver: bridge
