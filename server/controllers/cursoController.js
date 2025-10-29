@@ -2,6 +2,7 @@
 const path = require("path");
 const fs = require("fs");
 const Course = require("../models/Course");
+const { generateFileUrl } = require("../utils/urlHelper");
 
 const cursosDir = path.join(__dirname, "..", "uploads", "cursos");
 
@@ -63,13 +64,13 @@ exports.crearCurso = async (req, res) => {
       return res.status(400).json({ mensaje: "Debe adjuntar un PDF" });
     }
 
-    // Procesar PDF (obligatorio)
-    const pdfUrl = `${req.protocol}://${req.get("host")}/uploads/cursos/${req.files.pdf[0].filename}`;
-    
+    // Procesar PDF (obligatorio) - usar helper para URLs correctas
+    const pdfUrl = generateFileUrl(`/uploads/cursos/${req.files.pdf[0].filename}`, req);
+
     // Procesar imagen (opcional)
     let imagenUrl = "";
     if (req.files.imagen && req.files.imagen[0]) {
-      imagenUrl = `${req.protocol}://${req.get("host")}/uploads/cursos/${req.files.imagen[0].filename}`;
+      imagenUrl = generateFileUrl(`/uploads/cursos/${req.files.imagen[0].filename}`, req);
     }
 
     console.log("Creando curso con:", { titulo, categoria, pdf: req.files.pdf[0], imagen: req.files.imagen?.[0] });
@@ -94,14 +95,14 @@ exports.actualizarCurso = async (req, res) => {
     if (req.files && req.files.pdf && req.files.pdf[0]) {
       // Borrar el PDF anterior si existía
       if (curso.pdfUrl) borrarArchivoPorUrl(curso.pdfUrl);
-      curso.pdfUrl = `${req.protocol}://${req.get("host")}/uploads/cursos/${req.files.pdf[0].filename}`;
+      curso.pdfUrl = generateFileUrl(`/uploads/cursos/${req.files.pdf[0].filename}`, req);
     }
 
     // Actualizar imagen si se envía una nueva
     if (req.files && req.files.imagen && req.files.imagen[0]) {
       // Borrar la imagen anterior si existía
       if (curso.imagenUrl) borrarArchivoPorUrl(curso.imagenUrl);
-      curso.imagenUrl = `${req.protocol}://${req.get("host")}/uploads/cursos/${req.files.imagen[0].filename}`;
+      curso.imagenUrl = generateFileUrl(`/uploads/cursos/${req.files.imagen[0].filename}`, req);
     }
 
     if (typeof titulo === "string") curso.titulo = titulo;

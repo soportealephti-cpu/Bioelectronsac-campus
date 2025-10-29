@@ -4,7 +4,17 @@ import { useNavigate, useParams } from "react-router-dom";
 import { getAssignmentDetail } from "../../services/assignments";
 import { ChevronLeft, FileText, GraduationCap, X } from "lucide-react";
 
-const API = "http://localhost:5000";
+// Obtener URL base del API desde variables de entorno
+const getApiUrl = () => {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  return process.env.NODE_ENV === 'development'
+    ? 'http://localhost:5000'
+    : 'https://api.campus.bioelectronsac.com';
+};
+
+const API = getApiUrl();
 const normalizeUrl = (u) => (!u ? "" : u.startsWith("http") ? u : `${API}${u.startsWith("/") ? u : `/${u}`}`);
 
 export default function CourseViewer() {

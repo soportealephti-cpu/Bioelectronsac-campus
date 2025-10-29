@@ -243,21 +243,21 @@ export default function Certificados() {
         />
       )}
 
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4 sm:mb-6">Certificados</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4 sm:mb-6 text-center sm:text-left">Certificados</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Formulario */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="font-semibold mb-4">Datos</h2>
+        <div className="bg-white rounded-xl shadow p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold mb-4 text-center sm:text-left">Datos</h2>
 
           <div className="space-y-3">
             <div>
-              <label className="block text-sm mb-1">Alumno</label>
+              <label className="block text-xs sm:text-sm mb-1 font-medium">Alumno</label>
               <select
                 name="userId"
                 value={form.userId}
                 onChange={onChange}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 text-sm"
               >
                 <option value="">Seleccione…</option>
                 {users.map((u) => (
@@ -270,12 +270,12 @@ export default function Certificados() {
             </div>
 
             <div>
-              <label className="block text-sm mb-1">Curso</label>
+              <label className="block text-xs sm:text-sm mb-1 font-medium">Curso</label>
               <select
                 name="courseId"
                 value={form.courseId}
                 onChange={onChange}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 text-sm"
               >
                 <option value="">Seleccione…</option>
                 {courses.map((c) => (
@@ -286,68 +286,70 @@ export default function Certificados() {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm mb-1">Número (opcional)</label>
+                <label className="block text-xs sm:text-sm mb-1 font-medium">Número (opcional)</label>
                 <input
                   name="number"
                   value={form.number}
                   onChange={onChange}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 text-sm"
                   placeholder="N°"
                 />
               </div>
               <div>
-                <label className="block text-sm mb-1">Fecha de emisión</label>
+                <label className="block text-xs sm:text-sm mb-1 font-medium">Fecha de emisión</label>
                 <input
                   type="date"
                   name="emitDate"
                   value={form.emitDate}
                   onChange={onChange}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm mb-1">Representante (Gerente)</label>
+              <label className="block text-xs sm:text-sm mb-1 font-medium">Representante (Gerente)</label>
               <input
                 name="gerenteNombre"
                 value={form.gerenteNombre}
                 onChange={onChange}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 text-sm"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm mb-1">Cambiar fondo (PNG/JPG)</label>
+                <label className="block text-xs sm:text-sm mb-1 font-medium">Cambiar fondo (PNG/JPG)</label>
                 <input
                   type="file"
                   accept="image/png,image/jpeg"
                   onChange={onFile("backgroundFile")}
+                  className="w-full text-xs sm:text-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm mb-1">Cambiar firma (PNG/JPG)</label>
+                <label className="block text-xs sm:text-sm mb-1 font-medium">Cambiar firma (PNG/JPG)</label>
                 <input
                   type="file"
                   accept="image/png,image/jpeg"
                   onChange={onFile("firmaFile")}
+                  className="w-full text-xs sm:text-sm"
                 />
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 onClick={saveTemplate}
-                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+                className="w-full sm:w-auto px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
               >
                 Guardar plantilla
               </button>
               <button
                 onClick={emitir}
-                className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700"
+                className="w-full sm:w-auto px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 text-sm font-medium"
               >
                 Emitir certificado
               </button>
@@ -356,16 +358,16 @@ export default function Certificados() {
         </div>
 
         {/* Vista previa */}
-        <div className="bg-white rounded-xl shadow p-4">
+        <div className="bg-white rounded-xl shadow p-4 sm:p-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">Vista previa</h2>
+            <h2 className="text-base sm:text-lg font-semibold">Vista previa</h2>
             <button
               onClick={openPreviewTab}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded border hover:bg-gray-50"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded border hover:bg-gray-50 text-sm"
               title="Ver en otra pestaña"
             >
               <Eye size={16} />
-              Ver
+              <span className="hidden sm:inline">Ver</span>
             </button>
           </div>
 
@@ -390,18 +392,18 @@ export default function Certificados() {
             )}
 
             {/* overlays */}
-            <div className="absolute inset-0 p-[14%]">
+            <div className="absolute inset-0 p-[10%] sm:p-[14%]">
               {/* bloque superior */}
-              <div className="w-full text-center mt-[7%]">
-                <div className="text-xl font-extrabold leading-none mb-1">
+              <div className="w-full text-center mt-[5%] sm:mt-[7%]">
+                <div className="text-base sm:text-xl font-extrabold leading-none mb-1">
                   CERTIFICADO N°{form.number || ""}
                 </div>
-                <div className="font-bold text-xs">BIO-2025</div>
-                <div className="mt-1 text-[13px]">Certificado de aprobación para:</div>
-                <div className="text-2xl font-extrabold leading-tight">
+                <div className="font-bold text-[10px] sm:text-xs">BIO-2025</div>
+                <div className="mt-1 text-[10px] sm:text-[13px]">Certificado de aprobación para:</div>
+                <div className="text-lg sm:text-2xl font-extrabold leading-tight mt-1">
                   {alumnoNombre}
                 </div>
-                <div className="mt-2 text-[13px] leading-snug">
+                <div className="mt-2 text-[10px] sm:text-[13px] leading-snug px-2 sm:px-0">
                   Por haber completado satisfactoriamente el curso:
                   <span className="font-semibold"> {cursoTitulo}</span> con una
                   duración de
@@ -410,27 +412,27 @@ export default function Certificados() {
               </div>
 
               {/* fecha abajo izquierda */}
-              <div className="absolute left-[7%] bottom-[9%] text-[12px]">
+              <div className="absolute left-[5%] sm:left-[7%] bottom-[9%] text-[10px] sm:text-[12px]">
                 {fechaLarga}
               </div>
 
               {/* firma + gerente abajo derecha */}
-              <div className="absolute right-[28%] bottom-[10%] flex flex-col items-center">
+              <div className="absolute right-[15%] sm:right-[28%] bottom-[8%] sm:bottom-[10%] flex flex-col items-center">
                 {(preview.firmaUrl || tpl?.firmaUrl) && (
                   <img
                     src={preview.firmaUrl || tpl?.firmaUrl}
                     alt="firma"
-                    className="h-14 object-contain -mb-2"
+                    className="h-10 sm:h-14 object-contain -mb-2"
                   />
                 )}
-                <div className="border-t w-56" />
-                <div className="text-[12px] mt-1">{gerente}</div>
-                <div className="text-[11px] text-gray-500">Gerente General</div>
+                <div className="border-t w-32 sm:w-56" />
+                <div className="text-[10px] sm:text-[12px] mt-1 text-center">{gerente}</div>
+                <div className="text-[9px] sm:text-[11px] text-gray-500">Gerente General</div>
               </div>
             </div>
           </div>
 
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-gray-500 mt-2 text-center sm:text-left">
             * La posición de los textos es fija por ahora.
           </p>
         </div>

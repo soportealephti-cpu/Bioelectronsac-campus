@@ -1,0 +1,162 @@
+================================================================================
+                    INSTRUCCIONES PARA DESPLIEGUE EN DOCKER
+                         Bioelectronsac Campus
+================================================================================
+
+PROBLEMA RESUELTO: Mixed Content (HTTP/HTTPS)
+================================================================================
+
+Se corrigió el error de "Mixed Content" donde la aplicación cargaba por HTTPS
+pero intentaba acceder a recursos (PDFs y certificados) por HTTP, causando que
+los navegadores bloquearan el contenido.
+
+CAMBIOS REALIZADOS:
+================================================================================
+
+1. FRONTEND (Client):
+   ----------------
+   - Creado .env y .env.production con variable REACT_APP_API_URL
+   - Actualizado api.js para usar URLs dinámicas según entorno
+   - Actualizado CourseViewer.jsx para usar variable de entorno
+   - Actualizado Certificates.jsx para usar variable de entorno
+
+2. BACKEND (Server):
+   -----------------
+   - Creado utils/urlHelper.js - Helper para generar URLs correctas
+   - Actualizado cursoController.js para usar generateFileUrl()
+   - Agregadas variables NODE_ENV y API_URL al .env
+   - Creado .env.production para configuración de producción
+
+3. DOCKER:
+   -------
+   - Actualizado docker-compose.yml con variables de entorno correctas
+   - Agregadas variables REACT_APP_API_URL y API_URL
+
+CONFIGURACIÓN POR ENTORNO:
+================================================================================
+
+DESARROLLO LOCAL:
+-----------------
+Frontend (.env):
+  REACT_APP_API_URL=http://localhost:5000
+
+Backend (.env):
+  NODE_ENV=development
+  API_URL=http://localhost:5000
+
+Resultado: Usa HTTP en localhost
+
+PRODUCCIÓN DOCKER:
+------------------
+Frontend (.env.production):
+  REACT_APP_API_URL=https://api.campus.bioelectronsac.com
+
+Backend (.env.production):
+  NODE_ENV=production
+  API_URL=https://api.campus.bioelectronsac.com
+
+docker-compose.yml:
+  environment:
+    - NODE_ENV=production
+    - API_URL=https://api.campus.bioelectronsac.com
+    - REACT_APP_API_URL=https://api.campus.bioelectronsac.com
+
+Resultado: Usa HTTPS en producción
+
+CÓMO FUNCIONA:
+================================================================================
+
+1. GENERACIÓN DE URLs EN BACKEND:
+   -------------------------------
+   Antes (incorrecto):
+     const pdfUrl = `${req.protocol}://${req.get("host")}/uploads/...`
+     Problema: req.protocol puede ser "http" detrás de proxy/load balancer
+
+   Ahora (correcto):
+     const pdfUrl = generateFileUrl(`/uploads/cursos/...`, req)
+
+   El helper generateFileUrl():
+     - Verifica variable de entorno API_URL (prioritario)
+     - Si NODE_ENV=production, usa HTTPS
+     - Verifica headers de proxy (x-forwarded-proto)
+     - Fallback a localhost en desarrollo
+
+2. CONSUMO DE URLs EN FRONTEND:
+   ----------------------------
+   Antes (incorrecto):
+     const API = "http://localhost:5000"
+     Problema: Hardcodeado, no funciona en producción
+
+   Ahora (correcto):
+     const API = process.env.REACT_APP_API_URL || ...
+
+   Se adapta automáticamente según entorno de build.
+
+INSTRUCCIONES DE DESPLIEGUE:
+================================================================================
+
+OPCIÓN 1: Docker Compose (Recomendado)
+----------------------------------------
+1. Asegúrate de tener las variables correctas en docker-compose.yml
+2. Ejecuta:
+   docker-compose down
+   docker-compose build --no-cache
+   docker-compose up -d
+
+OPCIÓN 2: Variables de Entorno Manuales
+-----------------------------------------
+Si usas otro método de despliegue, asegúrate de configurar:
+
+Backend:
+  export NODE_ENV=production
+  export API_URL=https://api.campus.bioelectronsac.com
+  export MONGO_URI=mongodb://...
+  export JWT_SECRET=...
+
+Frontend (antes del build):
+  export REACT_APP_API_URL=https://api.campus.bioelectronsac.com
+  npm run build
+
+VERIFICACIÓN:
+================================================================================
+
+1. Verificar que la aplicación carga por HTTPS:
+   https://campus.bioelectronsac.com
+
+2. Abrir DevTools (F12) > Console
+
+3. NO deberían aparecer errores de "Mixed Content"
+
+4. Los PDFs y certificados deben cargarse correctamente
+
+5. Verificar en Network tab que las peticiones a /uploads son HTTPS:
+   ✅ https://api.campus.bioelectronsac.com/uploads/cursos/...
+   ❌ http://api.campus.bioelectronsac.com/uploads/cursos/...
+
+TROUBLESHOOTING:
+================================================================================
+
+PROBLEMA: Los PDFs aún no cargan
+SOLUCIÓN:
+  - Verificar que las variables de entorno estén configuradas
+  - Reconstruir la imagen Docker con --no-cache
+  - Verificar logs: docker-compose logs app
+
+PROBLEMA: Error "Mixed Content" persiste
+SOLUCIÓN:
+  - Verificar que el proxy/load balancer pase headers correctos:
+    - X-Forwarded-Proto: https
+    - X-Forwarded-Host: api.campus.bioelectronsac.com
+  - En Nginx:
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+
+PROBLEMA: En desarrollo local no funciona
+SOLUCIÓN:
+  - Usar .env (no .env.production)
+  - Configurar: REACT_APP_API_URL=http://localhost:5000
+  - Reiniciar npm start
+
+================================================================================
+                    DOCUMENTACIÓN COMPLETADA
+================================================================================

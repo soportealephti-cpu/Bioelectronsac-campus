@@ -213,17 +213,17 @@ export default function Backup() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           {backupSections.map((section, index) => (
             <div key={index} className="bg-white rounded-xl p-4 sm:p-6 border shadow-sm">
-              <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 mb-4">
-                <div className={`p-3 rounded-lg ${section.bgColor} mx-auto sm:mx-0`}>
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4 mb-4">
+                <div className={`p-3 rounded-lg ${section.bgColor}`}>
                   <section.icon className={`w-6 h-6 ${section.color}`} />
                 </div>
-                <div className="text-center sm:text-left">
+                <div className="text-center sm:text-left w-full sm:w-auto">
                   <h4 className="text-base sm:text-lg font-semibold text-gray-800">{section.title}</h4>
                   <p className="text-gray-600 text-xs sm:text-sm">{section.description}</p>
                 </div>
               </div>
               <div className="bg-gray-50 rounded-lg p-3">
-                <h5 className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Campos incluidos:</h5>
+                <h5 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 text-center sm:text-left">Campos incluidos:</h5>
                 <div className="flex flex-wrap gap-1 justify-center sm:justify-start">
                   {section.fields.map((field, fieldIndex) => (
                     <span
@@ -242,11 +242,11 @@ export default function Backup() {
 
       {/* Información adicional */}
       <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 sm:p-6 rounded-r-xl">
-        <div className="flex flex-col sm:flex-row items-start gap-3">
-          <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mx-auto sm:mx-0" />
-          <div className="text-center sm:text-left">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3">
+          <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0" />
+          <div className="text-center sm:text-left w-full">
             <h4 className="text-yellow-800 font-semibold mb-2 text-sm sm:text-base">Información Importante</h4>
-            <ul className="text-yellow-700 text-xs sm:text-sm space-y-1 text-left">
+            <ul className="text-yellow-700 text-xs sm:text-sm space-y-1 text-left mx-auto sm:mx-0 inline-block sm:block">
               <li>• El archivo se descargará en formato .xlsx (Excel)</li>
               <li>• Cada tabla de la base de datos será una hoja separada</li>
               <li>• Los datos se exportan con la información actual del sistema</li>

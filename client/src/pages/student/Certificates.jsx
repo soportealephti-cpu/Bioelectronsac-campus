@@ -3,6 +3,18 @@ import { useSearchParams } from "react-router-dom";
 import { Award, Download, Eye, Calendar, BookOpen, X, ArrowLeft } from "lucide-react";
 import api from "../../api";
 
+// Obtener URL base del API desde variables de entorno
+const getApiUrl = () => {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  return process.env.NODE_ENV === 'development'
+    ? 'http://localhost:5000'
+    : 'https://api.campus.bioelectronsac.com';
+};
+
+const API_URL = getApiUrl();
+
 export default function Certificates() {
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -137,7 +149,7 @@ export default function Certificates() {
                   Ver
                 </button>
                 <button
-                  onClick={() => window.open(`http://localhost:5000/api/certificates/${cert._id}/pdf`, '_blank')}
+                  onClick={() => window.open(`${API_URL}/api/certificates/${cert._id}/pdf`, '_blank')}
                   className="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
                   title="Descargar certificado"
                 >
@@ -176,7 +188,7 @@ export default function Certificates() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => window.open(`http://localhost:5000/api/certificates/${viewingCertificate._id}/pdf`, '_blank')}
+                  onClick={() => window.open(`${API_URL}/api/certificates/${viewingCertificate._id}/pdf`, '_blank')}
                   className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-sm sm:text-base"
                 >
                   <Download size={14} />
@@ -194,7 +206,7 @@ export default function Certificates() {
             {/* Visor de PDF */}
             <div className="flex-1 p-4">
               <iframe
-                src={`http://localhost:5000/api/certificates/${viewingCertificate._id}/pdf`}
+                src={`${API_URL}/api/certificates/${viewingCertificate._id}/pdf`}
                 className="w-full h-full border-0 rounded-lg"
                 title="Vista del certificado"
               />
