@@ -65,7 +65,7 @@ export default function Certificates() {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="w-full px-4 sm:px-6 lg:px-6">
       <div className="mb-6 sm:mb-8">
         <div className="flex items-center gap-2 sm:gap-3 mb-2">
           <Award className="text-emerald-600" size={24} />

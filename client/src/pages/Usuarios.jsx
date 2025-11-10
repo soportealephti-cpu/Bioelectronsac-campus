@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
-import { Plus, X, Trash2, Edit2 } from "lucide-react";
+import { Plus, X, Trash2, Edit2, ChevronLeft, ChevronRight } from "lucide-react";
 import { listUsers, createUser, updateUser, deleteUser } from "../services/users";
 import Toast from "../components/Toast";
 
 const DOMAIN = "@bioelectronsac.com";
+const USUARIOS_POR_PAGINA = 10;
 
 export default function Usuarios() {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null); // null = crear, id = editar
   const [loading, setLoading] = useState(false);
   const [usuarios, setUsuarios] = useState([]);
+  const [paginaActual, setPaginaActual] = useState(1);
   const [toast, setToast] = useState({ show: false, type: "success", message: "" });
 
   const showToast = (type, message, ms = 2200) => {
@@ -22,12 +24,13 @@ export default function Usuarios() {
     apellido: "",
     nombre: "",
     correoBase: "",
+    correoPersonal: "",
     telefono: ""
   });
 
   const abrirModalCrear = () => {
     setEditId(null);
-    setForm({ dni: "", apellido: "", nombre: "", correoBase: "", telefono: "" });
+    setForm({ dni: "", apellido: "", nombre: "", correoBase: "", correoPersonal: "", telefono: "" });
     setShowModal(true);
   };
 
@@ -41,6 +44,7 @@ export default function Usuarios() {
       apellido: u.apellido || "",
       nombre: u.nombre || "",
       correoBase: base,
+      correoPersonal: u.correoPersonal || "",
       telefono: u.celular || u.telefono || ""
     });
     setShowModal(true);
@@ -49,7 +53,7 @@ export default function Usuarios() {
   const cerrarModal = () => {
     setShowModal(false);
     setEditId(null);
-    setForm({ dni: "", apellido: "", nombre: "", correoBase: "", telefono: "" });
+    setForm({ dni: "", apellido: "", nombre: "", correoBase: "", correoPersonal: "", telefono: "" });
   };
 
   const generarCorreoUnico = (nombre, apellido) => {
@@ -171,6 +175,7 @@ export default function Usuarios() {
       apellido: form.apellido,
       nombre: form.nombre,
       correo: form.correoBase, // backend agrega @bioelectronsac.com al crear; en editar enviamos base y que backend lo maneje si así lo definiste
+      correoPersonal: form.correoPersonal,
       telefono: form.telefono,
       password: form.dni // Contraseña será el DNI
     };
@@ -216,8 +221,58 @@ export default function Usuarios() {
     }
   };
 
+  // Calcular paginación
+  const totalPaginas = Math.ceil(usuarios.length / USUARIOS_POR_PAGINA);
+  const indiceInicio = (paginaActual - 1) * USUARIOS_POR_PAGINA;
+  const indiceFin = indiceInicio + USUARIOS_POR_PAGINA;
+  const usuariosPaginados = usuarios.slice(indiceInicio, indiceFin);
+
+  const irAPagina = (numeroPagina) => {
+    setPaginaActual(numeroPagina);
+  };
+
+  const paginaAnterior = () => {
+    if (paginaActual > 1) setPaginaActual(paginaActual - 1);
+  };
+
+  const paginaSiguiente = () => {
+    if (paginaActual < totalPaginas) setPaginaActual(paginaActual + 1);
+  };
+
+  // Generar array de números de página para mostrar
+  const obtenerNumerosPagina = () => {
+    const numeros = [];
+    const maxPaginasVisibles = 5;
+
+    if (totalPaginas <= maxPaginasVisibles) {
+      // Mostrar todas las páginas si son pocas
+      for (let i = 1; i <= totalPaginas; i++) {
+        numeros.push(i);
+      }
+    } else {
+      // Mostrar páginas con elipsis
+      if (paginaActual <= 3) {
+        for (let i = 1; i <= 4; i++) numeros.push(i);
+        numeros.push('...');
+        numeros.push(totalPaginas);
+      } else if (paginaActual >= totalPaginas - 2) {
+        numeros.push(1);
+        numeros.push('...');
+        for (let i = totalPaginas - 3; i <= totalPaginas; i++) numeros.push(i);
+      } else {
+        numeros.push(1);
+        numeros.push('...');
+        for (let i = paginaActual - 1; i <= paginaActual + 1; i++) numeros.push(i);
+        numeros.push('...');
+        numeros.push(totalPaginas);
+      }
+    }
+
+    return numeros;
+  };
+
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="w-full px-4 sm:px-6">
       {toast.show && (
         <Toast type={toast.type} message={toast.message} onClose={() => setToast({ show: false })} />
       )}
@@ -237,107 +292,209 @@ export default function Usuarios() {
       </div>
 
       {/* Vista Desktop - Tabla */}
-      <div className="hidden lg:block overflow-x-auto shadow rounded-lg bg-white">
-        <table className="min-w-full">
-          <thead>
-            <tr className="bg-green-100 text-gray-700">
-              <th className="px-4 py-3 text-left font-semibold">DNI</th>
-              <th className="px-4 py-3 text-left font-semibold">Apellido</th>
-              <th className="px-4 py-3 text-left font-semibold">Nombre</th>
-              <th className="px-4 py-3 text-left font-semibold">Correo</th>
-              <th className="px-4 py-3 text-left font-semibold">Teléfono</th>
-              <th className="px-4 py-3 text-left font-semibold w-36">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr><td className="px-4 py-4 text-gray-500 text-center" colSpan={6}>Cargando...</td></tr>
-            )}
-            {!loading && usuarios.length === 0 && (
-              <tr><td className="px-4 py-4 text-gray-500 text-center" colSpan={6}>No hay usuarios registrados.</td></tr>
-            )}
-            {!loading && usuarios.map((u) => (
-              <tr key={u._id} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3">{u.dni}</td>
-                <td className="px-4 py-3">{u.apellido || "-"}</td>
-                <td className="px-4 py-3">{u.nombre}</td>
-                <td className="px-4 py-3 text-sm">{u.correo}</td>
-                <td className="px-4 py-3">{u.celular || u.telefono || "-"}</td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button
-                      title="Editar"
-                      className="p-2 rounded-lg border hover:bg-blue-50 text-blue-600 transition-colors"
-                      onClick={() => abrirModalEditar(u)}
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      title="Eliminar"
-                      className="p-2 rounded-lg border hover:bg-red-50 text-red-600 transition-colors"
-                      onClick={() => onDelete(u._id)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
+      <div className="hidden lg:block bg-white rounded-lg shadow">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead>
+              <tr className="bg-green-100 text-gray-700">
+                <th className="px-4 py-3 text-left font-semibold">DNI</th>
+                <th className="px-4 py-3 text-left font-semibold">Apellido</th>
+                <th className="px-4 py-3 text-left font-semibold">Nombre</th>
+                <th className="px-4 py-3 text-left font-semibold">Correo</th>
+                <th className="px-4 py-3 text-left font-semibold">Teléfono</th>
+                <th className="px-4 py-3 text-left font-semibold w-36">Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr><td className="px-4 py-4 text-gray-500 text-center" colSpan={6}>Cargando...</td></tr>
+              )}
+              {!loading && usuarios.length === 0 && (
+                <tr><td className="px-4 py-4 text-gray-500 text-center" colSpan={6}>No hay usuarios registrados.</td></tr>
+              )}
+              {!loading && usuariosPaginados.map((u) => (
+                <tr key={u._id} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3">{u.dni}</td>
+                  <td className="px-4 py-3">{u.apellido || "-"}</td>
+                  <td className="px-4 py-3">{u.nombre}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col gap-1 text-sm">
+                      <div className="font-medium text-gray-700">{u.correo}</div>
+                      {u.correoPersonal && (
+                        <div className="text-gray-600 text-xs">{u.correoPersonal}</div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">{u.celular || u.telefono || "-"}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      <button
+                        title="Editar"
+                        className="p-2 rounded-lg border hover:bg-blue-50 text-blue-600 transition-colors"
+                        onClick={() => abrirModalEditar(u)}
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        title="Eliminar"
+                        className="p-2 rounded-lg border hover:bg-red-50 text-red-600 transition-colors"
+                        onClick={() => onDelete(u._id)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Controles de paginación Desktop */}
+        {!loading && usuarios.length > 0 && (
+          <div className="flex items-center justify-between px-4 py-4 border-t bg-gray-50">
+            <div className="text-sm text-gray-700">
+              Mostrando <span className="font-medium">{indiceInicio + 1}</span> a{" "}
+              <span className="font-medium">{Math.min(indiceFin, usuarios.length)}</span> de{" "}
+              <span className="font-medium">{usuarios.length}</span> usuarios
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={paginaAnterior}
+                disabled={paginaActual === 1}
+                className="p-2 rounded-lg border hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Página anterior"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              {obtenerNumerosPagina().map((num, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => typeof num === 'number' && irAPagina(num)}
+                  disabled={num === '...'}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                    num === paginaActual
+                      ? 'bg-green-600 text-white'
+                      : num === '...'
+                      ? 'cursor-default'
+                      : 'border hover:bg-white'
+                  }`}
+                >
+                  {num}
+                </button>
+              ))}
+              <button
+                onClick={paginaSiguiente}
+                disabled={paginaActual === totalPaginas}
+                className="p-2 rounded-lg border hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Página siguiente"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Vista Móvil/Tablet - Tarjetas */}
-      <div className="lg:hidden space-y-4">
-        {loading && (
-          <div className="bg-white rounded-xl p-6 shadow-sm text-center text-gray-500">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
-            Cargando usuarios...
-          </div>
-        )}
-        {!loading && usuarios.length === 0 && (
-          <div className="bg-white rounded-xl p-6 shadow-sm text-center text-gray-500">
-            No hay usuarios registrados.
-          </div>
-        )}
-        {!loading && usuarios.map((u) => (
-          <div key={u._id} className="bg-white rounded-xl shadow-sm border p-4 sm:p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-900 text-lg">{u.nombre} {u.apellido}</h3>
-                <p className="text-sm text-gray-600 font-medium">DNI: {u.dni}</p>
-              </div>
-              <div className="flex gap-2 ml-4">
-                <button
-                  title="Editar"
-                  className="p-2 rounded-lg border hover:bg-blue-50 text-blue-600 transition-colors"
-                  onClick={() => abrirModalEditar(u)}
-                >
-                  <Edit2 size={18} />
-                </button>
-                <button
-                  title="Eliminar"
-                  className="p-2 rounded-lg border hover:bg-red-50 text-red-600 transition-colors"
-                  onClick={() => onDelete(u._id)}
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
+      <div className="lg:hidden">
+        <div className="space-y-4">
+          {loading && (
+            <div className="bg-white rounded-xl p-6 shadow-sm text-center text-gray-500">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
+              Cargando usuarios...
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center text-sm">
-                <span className="font-medium text-gray-700 w-20">Correo:</span>
-                <span className="text-gray-600 break-all">{u.correo}</span>
-              </div>
-              {(u.celular || u.telefono) && (
-                <div className="flex items-center text-sm">
-                  <span className="font-medium text-gray-700 w-20">Teléfono:</span>
-                  <span className="text-gray-600">{u.celular || u.telefono}</span>
+          )}
+          {!loading && usuarios.length === 0 && (
+            <div className="bg-white rounded-xl p-6 shadow-sm text-center text-gray-500">
+              No hay usuarios registrados.
+            </div>
+          )}
+          {!loading && usuariosPaginados.map((u) => (
+            <div key={u._id} className="bg-white rounded-xl shadow-sm border p-4 sm:p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 text-lg">{u.nombre} {u.apellido}</h3>
+                  <p className="text-sm text-gray-600 font-medium">DNI: {u.dni}</p>
                 </div>
-              )}
+                <div className="flex gap-2 ml-4">
+                  <button
+                    title="Editar"
+                    className="p-2 rounded-lg border hover:bg-blue-50 text-blue-600 transition-colors"
+                    onClick={() => abrirModalEditar(u)}
+                  >
+                    <Edit2 size={18} />
+                  </button>
+                  <button
+                    title="Eliminar"
+                    className="p-2 rounded-lg border hover:bg-red-50 text-red-600 transition-colors"
+                    onClick={() => onDelete(u._id)}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-start text-sm">
+                  <span className="font-medium text-gray-700 w-20 flex-shrink-0">Correo:</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-gray-700 break-all font-medium">{u.correo}</span>
+                    {u.correoPersonal && (
+                      <span className="text-gray-600 break-all text-xs">{u.correoPersonal}</span>
+                    )}
+                  </div>
+                </div>
+                {(u.celular || u.telefono) && (
+                  <div className="flex items-center text-sm">
+                    <span className="font-medium text-gray-700 w-20">Teléfono:</span>
+                    <span className="text-gray-600">{u.celular || u.telefono}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Controles de paginación Móvil */}
+        {!loading && usuarios.length > 0 && (
+          <div className="mt-6 bg-white rounded-lg shadow p-4">
+            <div className="text-xs text-gray-600 text-center mb-3">
+              Mostrando {indiceInicio + 1} - {Math.min(indiceFin, usuarios.length)} de {usuarios.length}
+            </div>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={paginaAnterior}
+                disabled={paginaActual === 1}
+                className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              {obtenerNumerosPagina().map((num, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => typeof num === 'number' && irAPagina(num)}
+                  disabled={num === '...'}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                    num === paginaActual
+                      ? 'bg-green-600 text-white'
+                      : num === '...'
+                      ? 'cursor-default'
+                      : 'border hover:bg-gray-50'
+                  }`}
+                >
+                  {num}
+                </button>
+              ))}
+              <button
+                onClick={paginaSiguiente}
+                disabled={paginaActual === totalPaginas}
+                className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight size={16} />
+              </button>
             </div>
           </div>
-        ))}
+        )}
       </div>
 
       {/* Modal crear/editar */}
@@ -397,7 +554,7 @@ export default function Usuarios() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Correo Electrónico
+                  Correo Institucional
                   {!editId && (
                     <span className="text-xs text-green-600 ml-1">(Se genera automáticamente)</span>
                   )}
@@ -419,6 +576,23 @@ export default function Usuarios() {
                     Formato: 1 letra del nombre + apellido (ej: jperez). Si existe, se usan 2 letras (ej: juperez)
                   </p>
                 )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Correo Personal
+                  <span className="text-xs text-gray-500 ml-1">(opcional)</span>
+                </label>
+                <input
+                  name="correoPersonal"
+                  type="email"
+                  value={form.correoPersonal}
+                  onChange={handleChange}
+                  placeholder="ejemplo@gmail.com"
+                  className="w-full border border-gray-300 px-4 py-3 rounded-lg focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Correo personal del usuario para contacto adicional
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono (opcional)</label>

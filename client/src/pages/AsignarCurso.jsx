@@ -2,18 +2,22 @@ import { useEffect, useMemo, useState } from "react";
 import { UserPlus, BookOpen, CheckCircle2, Trash2, Clock, ShieldCheck } from "lucide-react";
 import Toast from "../components/Toast";
 import { listUsers } from "../services/users";
-import { listCourses } from "../services/courses";
-import { listAssignmentsByUser, createAssignment, deleteAssignment } from "../services/assignments";
+import { listModules, assignModuleToUser } from "../services/modules";
+import { listAssignmentsByUser, deleteAssignment } from "../services/assignments";
 
 export default function AsignarCurso() {
   const [users, setUsers] = useState([]);
-  const [courses, setCourses] = useState([]);
+  const [modules, setModules] = useState([]);
   const [selectedUser, setSelectedUser] = useState("");
-  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedModule, setSelectedModule] = useState("");
   const [days, setDays] = useState(30);
 
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Estados para búsqueda de alumnos
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   const [toast, setToast] = useState(null);
   const showToast = (type, message, ms = 2200) => {
@@ -26,12 +30,30 @@ export default function AsignarCurso() {
     return u ? `${u.apellido || ""} ${u.nombre || ""}`.trim() : "—";
   }, [selectedUser, users]);
 
+  // Filtrar usuarios según el término de búsqueda
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm) return users;
+    const term = searchTerm.toLowerCase();
+    return users.filter(u => {
+      const fullName = `${u.apellido || ""} ${u.nombre || ""}`.toLowerCase();
+      const email = (u.correo || "").toLowerCase();
+      const dni = (u.dni || "").toLowerCase();
+      return fullName.includes(term) || email.includes(term) || dni.includes(term);
+    });
+  }, [users, searchTerm]);
+
+  const handleSelectUser = (user) => {
+    setSelectedUser(user._id);
+    setSearchTerm(`${user.apellido || ""} ${user.nombre || ""}`.trim());
+    setShowUserDropdown(false);
+  };
+
   const cargarBase = async () => {
     try {
       setLoading(true);
-      const [u, c] = await Promise.all([listUsers(), listCourses()]);
+      const [u, m] = await Promise.all([listUsers(), listModules()]);
       setUsers(u);
-      setCourses(c);
+      setModules(m);
     } catch {
       showToast("error", "Error cargando listas");
     } finally {
@@ -55,14 +77,27 @@ export default function AsignarCurso() {
   useEffect(() => { cargarBase(); }, []);
   useEffect(() => { cargarAsignaciones(selectedUser); }, [selectedUser]);
 
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showUserDropdown && !e.target.closest('.relative')) {
+        setShowUserDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserDropdown]);
+
   const asignar = async () => {
     if (!selectedUser) return showToast("warn", "Selecciona un alumno");
-    if (!selectedCourse) return showToast("warn", "Selecciona un curso");
+    if (!selectedModule) return showToast("warn", "Selecciona un módulo");
     try {
       setLoading(true);
-      await createAssignment({ userId: selectedUser, courseId: selectedCourse, days });
+      const result = await assignModuleToUser(selectedUser, selectedModule, days);
       await cargarAsignaciones(selectedUser);
-      showToast("success", "Curso asignado correctamente");
+
+      const mensaje = `Módulo asignado: ${result.asignados} cursos nuevos, ${result.duplicados} ya existían`;
+      showToast("success", mensaje, 3000);
     } catch (e) {
       const msg = e?.response?.data?.mensaje || "Error al asignar";
       showToast("error", msg);
@@ -85,7 +120,7 @@ export default function AsignarCurso() {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="w-full px-4 sm:px-6 lg:px-6">
       {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
 
       <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 sm:gap-6">
@@ -93,40 +128,63 @@ export default function AsignarCurso() {
         <div className="bg-white rounded-xl shadow-sm border p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4 sm:mb-6">
             <UserPlus className="text-green-600" size={20} />
-            <h2 className="text-lg sm:text-xl font-bold text-gray-700">Asignar Curso</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-700">Asignar Módulo</h2>
           </div>
 
           <div className="space-y-4 sm:space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Selecciona Alumno</label>
-              <select
-                value={selectedUser}
-                onChange={(e) => setSelectedUser(e.target.value)}
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Buscar Alumno</label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setShowUserDropdown(true);
+                  if (!e.target.value) setSelectedUser("");
+                }}
+                onFocus={() => setShowUserDropdown(true)}
+                placeholder="Escribe nombre, DNI o correo..."
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-              >
-                <option value="">— Elegir alumno —</option>
-                {users.map(u => (
-                  <option key={u._id} value={u._id}>
-                    {u.apellido} {u.nombre} — {u.correo}
-                  </option>
-                ))}
-              </select>
+              />
+              {showUserDropdown && filteredUsers.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {filteredUsers.map(u => (
+                    <div
+                      key={u._id}
+                      onClick={() => handleSelectUser(u)}
+                      className="px-4 py-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="font-medium text-gray-900">{u.apellido} {u.nombre}</div>
+                      <div className="text-sm text-gray-600">{u.correo} • DNI: {u.dni}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Selecciona Curso</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Selecciona Módulo</label>
               <select
-                value={selectedCourse}
-                onChange={(e) => setSelectedCourse(e.target.value)}
+                value={selectedModule}
+                onChange={(e) => setSelectedModule(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
               >
-                <option value="">— Elegir curso —</option>
-                {courses.map(c => (
-                  <option key={c._id} value={c._id}>
-                    {c.titulo} • {c.categoria}
+                <option value="">— Elegir módulo —</option>
+                {modules.map(m => (
+                  <option key={m._id} value={m.nombre}>
+                    {m.nombre} {m.descripcion && `— ${m.descripcion}`}
                   </option>
                 ))}
               </select>
+              {modules.length === 0 ? (
+                <p className="text-xs text-amber-600 mt-1">
+                  ⚠️ No hay módulos creados. Ve a "Gestión de Módulos" para crear módulos primero.
+                </p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">
+                  Al asignar un módulo, se asignarán automáticamente todos los cursos que contiene.
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4 items-end">
@@ -147,7 +205,7 @@ export default function AsignarCurso() {
 
               <button
                 onClick={asignar}
-                disabled={loading || !selectedUser || !selectedCourse}
+                disabled={loading || !selectedUser || !selectedModule}
                 className="w-full sm:w-auto px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium transition-colors"
               >
                 {loading ? (
@@ -156,7 +214,7 @@ export default function AsignarCurso() {
                     Asignando...
                   </div>
                 ) : (
-                  "Asignar"
+                  "Asignar Módulo"
                 )}
               </button>
             </div>
@@ -164,7 +222,7 @@ export default function AsignarCurso() {
             <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-start gap-2 text-sm text-green-700">
                 <ShieldCheck size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Asignación segura: el alumno verá este curso en su panel de usuario.</span>
+                <span>Asignación segura: el alumno verá todos los cursos del módulo en su panel de usuario.</span>
               </div>
             </div>
           </div>
@@ -285,7 +343,7 @@ export default function AsignarCurso() {
       <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <div className="flex items-start gap-2 text-sm text-blue-700">
           <CheckCircle2 className="text-blue-600 mt-0.5 flex-shrink-0" size={16} />
-          <span>Tip: cuando asignes o quites un curso, la lista se actualiza automáticamente.</span>
+          <span>Tip: al asignar un módulo, todos sus cursos se asignan automáticamente. La lista se actualiza en tiempo real.</span>
         </div>
       </div>
     </div>

@@ -113,7 +113,7 @@ export default function Backup() {
   ];
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="w-full px-4 sm:px-6 lg:px-6">
       {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
       
       {/* Header */}

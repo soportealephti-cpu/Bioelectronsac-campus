@@ -7,11 +7,13 @@ const {
   createAssignment,
   listByUser,
   deleteAssignment,
-  getMyCourses, // Importar la nueva función
+  getMyCourses,
+  assignModuleToUser, // Importar la nueva función
 } = require("../controllers/assignmentController");
 
 router.get("/", listByUser);
 router.post("/", createAssignment);
+router.post("/module", assignModuleToUser); // Nueva ruta para asignar módulos
 router.delete("/:id", deleteAssignment);
 router.get("/my-courses", auth, getMyCourses);
 router.get("/:id", assignmentController.getById);

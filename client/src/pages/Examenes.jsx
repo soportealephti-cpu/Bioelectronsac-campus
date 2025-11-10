@@ -11,6 +11,10 @@ export default function Examenes() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
 
+  // Paginación
+  const EXAMENES_POR_PAGINA = 10;
+  const [paginaActual, setPaginaActual] = useState(1);
+
   const showToast = (type, message, ms = 2200) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), ms);
@@ -248,8 +252,47 @@ export default function Examenes() {
     }
   };
 
+  // Cálculo de paginación
+  const totalPaginas = Math.ceil(examenes.length / EXAMENES_POR_PAGINA);
+  const indiceInicio = (paginaActual - 1) * EXAMENES_POR_PAGINA;
+  const indiceFin = indiceInicio + EXAMENES_POR_PAGINA;
+  const examenesPaginados = examenes.slice(indiceInicio, indiceFin);
+
+  const cambiarPagina = (numeroPagina) => {
+    setPaginaActual(numeroPagina);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const generarNumerosPagina = () => {
+    const paginas = [];
+    const maxPaginasVisibles = 5;
+
+    if (totalPaginas <= maxPaginasVisibles) {
+      for (let i = 1; i <= totalPaginas; i++) {
+        paginas.push(i);
+      }
+    } else {
+      if (paginaActual <= 3) {
+        for (let i = 1; i <= 4; i++) paginas.push(i);
+        paginas.push('...');
+        paginas.push(totalPaginas);
+      } else if (paginaActual >= totalPaginas - 2) {
+        paginas.push(1);
+        paginas.push('...');
+        for (let i = totalPaginas - 3; i <= totalPaginas; i++) paginas.push(i);
+      } else {
+        paginas.push(1);
+        paginas.push('...');
+        for (let i = paginaActual - 1; i <= paginaActual + 1; i++) paginas.push(i);
+        paginas.push('...');
+        paginas.push(totalPaginas);
+      }
+    }
+    return paginas;
+  };
+
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="w-full px-4 sm:px-6 lg:px-6">
       {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
 
       {/* Header */}
@@ -283,7 +326,7 @@ export default function Examenes() {
             {!loading && examenes.length === 0 && (
               <tr><td colSpan={3} className="px-4 py-4 text-gray-500">No hay exámenes.</td></tr>
             )}
-            {!loading && examenes.map((ex) => (
+            {!loading && examenesPaginados.map((ex) => (
               <tr key={ex._id} className="border-b hover:bg-gray-50">
                 <td className="px-4 py-2">
                   <div className="flex items-center gap-2">
@@ -333,6 +376,72 @@ export default function Examenes() {
           </tbody>
         </table>
       </div>
+
+      {/* Paginación */}
+      {!loading && examenes.length > EXAMENES_POR_PAGINA && (
+        <>
+          {/* Paginación Desktop */}
+          <div className="hidden sm:flex justify-center items-center gap-2 mt-6">
+            <button
+              onClick={() => cambiarPagina(paginaActual - 1)}
+              disabled={paginaActual === 1}
+              className="px-4 py-2 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Anterior
+            </button>
+
+            <div className="flex gap-2">
+              {generarNumerosPagina().map((numero, index) => (
+                <button
+                  key={index}
+                  onClick={() => typeof numero === 'number' && cambiarPagina(numero)}
+                  disabled={numero === '...'}
+                  className={`px-4 py-2 rounded-lg border transition-colors ${
+                    numero === paginaActual
+                      ? 'bg-green-600 text-white border-green-600'
+                      : numero === '...'
+                      ? 'cursor-default border-transparent'
+                      : 'bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  {numero}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => cambiarPagina(paginaActual + 1)}
+              disabled={paginaActual === totalPaginas}
+              className="px-4 py-2 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Siguiente
+            </button>
+          </div>
+
+          {/* Paginación Móvil */}
+          <div className="sm:hidden flex flex-col gap-3 mt-6">
+            <div className="flex justify-center items-center gap-2 text-sm text-gray-600">
+              Página {paginaActual} de {totalPaginas}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => cambiarPagina(paginaActual - 1)}
+                disabled={paginaActual === 1}
+                className="flex-1 px-4 py-2 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Anterior
+              </button>
+              <button
+                onClick={() => cambiarPagina(paginaActual + 1)}
+                disabled={paginaActual === totalPaginas}
+                className="flex-1 px-4 py-2 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Modal CREAR */}
       {openCreate && (

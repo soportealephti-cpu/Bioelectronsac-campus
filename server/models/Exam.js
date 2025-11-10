@@ -19,8 +19,10 @@ const examSchema = new mongoose.Schema({
     type: [preguntaSchema],
     validate: v => Array.isArray(v) && v.length > 0
   },
-  // 👇 Relación opcional con Curso
-  courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course", default: null }
+  // 👇 Relación opcional con Curso (mantener compatibilidad)
+  courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course", default: null },
+  // 👇 Nuevo: Relación con módulo (string)
+  modulo: { type: String, default: "" }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Exam", examSchema);

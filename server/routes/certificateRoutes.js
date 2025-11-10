@@ -3,8 +3,8 @@ const auth = require('../middlewares/authMiddleware');
 const upload = require("../middlewares/uploadCert");
 const ctrl = require("../controllers/certificateController");
 
-// Plantilla
-router.get("/template", auth, ctrl.getTemplate);
+// Plantilla (GET sin auth para consistencia con otras rutas de listado)
+router.get("/template", ctrl.getTemplate);
 router.put(
   "/template",
   auth,
@@ -14,7 +14,7 @@ router.put(
   ]),
   ctrl.updateTemplate
 );
-router.get("/next-number", auth, ctrl.nextNumber);
+router.get("/next-number", ctrl.nextNumber);
 
 // Certificados
 router.post("/", auth, ctrl.emit);

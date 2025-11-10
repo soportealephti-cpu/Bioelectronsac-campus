@@ -5,6 +5,7 @@ const CourseSchema = new mongoose.Schema(
   {
     titulo: { type: String, required: true },
     categoria: { type: String, default: "" },
+    modulo: { type: String, default: "" }, // ⬅️ Nuevo: para agrupar cursos
     // ⬇️ Importante
     pdfUrl: { type: String, default: "" },
     // ⬇️ Nueva funcionalidad: Imagen del curso

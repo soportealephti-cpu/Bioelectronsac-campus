@@ -1,6 +1,6 @@
 // src/pages/Login.jsx
 import { useState } from "react";
-import { Eye, EyeOff, Mail, Lock, GraduationCap, Shield, Clock, Award } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, GraduationCap, Shield, Clock, Award, Copyright } from "lucide-react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
 
@@ -42,6 +42,8 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  const currentYear = new Date().getFullYear();
 
   return (
     <>
@@ -173,73 +175,94 @@ export default function Login() {
         </div>
 
         {/* Footer móvil */}
-        <div className="flex-shrink-0 p-4 sm:p-6 text-center">
-          <p className="text-xs sm:text-sm text-green-200">
-            © 2024 Bioelectron Academy. Todos los derechos reservados.
-          </p>
+        <div className="flex-shrink-0 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-xs sm:text-sm text-green-200">
+            <div className="flex items-center gap-2">
+              <Copyright size={14} className="text-green-300" />
+              <span className="font-medium">{currentYear} BIOELECTRON S.A.C.</span>
+            </div>
+            <span className="hidden sm:inline">|</span>
+            <span>Todos los derechos reservados</span>
+          </div>
         </div>
       </div>
 
       {/* Diseño Desktop - Original */}
-      <div 
-        className="hidden lg:flex min-h-screen items-center justify-center bg-cover bg-center"
+      <div
+        className="hidden lg:flex min-h-screen flex-col"
         style={{
           backgroundImage: `
             linear-gradient(to bottom, rgba(22, 163, 74, 0.8), rgba(37, 99, 235, 0.8)),
             url('https://images.unsplash.com/photo-1571260899304-425eee4c7efc?auto=format&fit=crop&w=1950&q=80')
           `,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
         }}
       >
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Bienvenido</h2>
-          <p className="text-sm text-gray-500 mb-6">
-            Ingresa a tu cuenta para acceder a los cursos
-          </p>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Bienvenido</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              Ingresa a tu cuenta para acceder a los cursos
+            </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4 text-left">
-            <div>
-              <label className="block mb-1 text-sm text-gray-700">
-                Correo Electrónico
-              </label>
-              <input
-                type="email"
-                name="correo"
-                value={formData.correo}
-                onChange={handleChange}
-                placeholder="ejemplo@correo.com"
-                required
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-400"
-              />
+            <form onSubmit={handleSubmit} className="space-y-4 text-left">
+              <div>
+                <label className="block mb-1 text-sm text-gray-700">
+                  Correo Electrónico
+                </label>
+                <input
+                  type="email"
+                  name="correo"
+                  value={formData.correo}
+                  onChange={handleChange}
+                  placeholder="ejemplo@correo.com"
+                  required
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-400"
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm text-gray-700">
+                  Contraseña
+                </label>
+                <input
+                  type="password"
+                  name="contraseña"
+                  value={formData.contraseña}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-400"
+                />
+              </div>
+
+              {error && <p className="text-red-600 text-sm text-center">{error}</p>}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition duration-300 disabled:opacity-60"
+              >
+                {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+              </button>
+            </form>
+
+            <div className="flex justify-around mt-6 text-sm text-gray-500">
+              <div className="flex items-center gap-1">🔒 Acceso Seguro</div>
+              <div className="flex items-center gap-1">🎓 Cursos Certificados</div>
+              <div className="flex items-center gap-1">⏱️ 24/7 Disponible</div>
             </div>
-            <div>
-              <label className="block mb-1 text-sm text-gray-700">
-                Contraseña
-              </label>
-              <input
-                type="password"
-                name="contraseña"
-                value={formData.contraseña}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-400"
-              />
+          </div>
+        </div>
+
+        {/* Footer Desktop */}
+        <div className="py-4 px-6">
+          <div className="flex items-center justify-center gap-2 text-sm text-white/90">
+            <div className="flex items-center gap-2">
+              <Copyright size={16} className="text-white" />
+              <span className="font-medium">{currentYear} BIOELECTRON S.A.C.</span>
             </div>
-
-            {error && <p className="text-red-600 text-sm text-center">{error}</p>}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition duration-300 disabled:opacity-60"
-            >
-              {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
-            </button>
-          </form>
-
-          <div className="flex justify-around mt-6 text-sm text-gray-500">
-            <div className="flex items-center gap-1">🔒 Acceso Seguro</div>
-            <div className="flex items-center gap-1">🎓 Cursos Certificados</div>
-            <div className="flex items-center gap-1">⏱️ 24/7 Disponible</div>
+            <span>|</span>
+            <span>Todos los derechos reservados</span>
           </div>
         </div>
       </div>

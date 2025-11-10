@@ -37,6 +37,7 @@ const upload = multer({
 // listar
 router.get("/", ctrl.obtenerCursos);
 router.get("/with-stats", ctrl.listarCursosConConteo);
+router.get("/modulos", ctrl.obtenerModulos);
 
 // crear (con PDF e imagen)
 router.post("/", upload.fields([{ name: "pdf", maxCount: 1 }, { name: "imagen", maxCount: 1 }]), ctrl.crearCurso);

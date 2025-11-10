@@ -1,5 +1,6 @@
 const Assignment = require("../models/Assignment");
 const Exam = require("../models/Exam");
+const Course = require("../models/Course");
 
 const addDays = (base, days) => new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
 
@@ -94,5 +95,60 @@ exports.getMyCourses = async (req, res) => {
   } catch (error) {
     console.error("❌ getMyCourses:", error);
     res.status(500).json({ mensaje: "Error al obtener mis cursos", error: error.message });
+  }
+};
+
+/**
+ * Asignar todos los cursos de un módulo a un usuario
+ */
+exports.assignModuleToUser = async (req, res) => {
+  try {
+    const { userId, moduleName, days = 30 } = req.body;
+
+    if (!userId || !moduleName) {
+      return res.status(400).json({ mensaje: "userId y moduleName son requeridos" });
+    }
+
+    // Buscar todos los cursos que pertenecen a este módulo
+    const cursos = await Course.find({ modulo: moduleName });
+
+    if (cursos.length === 0) {
+      return res.status(404).json({ mensaje: `No se encontraron cursos en el módulo "${moduleName}"` });
+    }
+
+    const expiresAt = addDays(new Date(), Number(days));
+    let asignados = 0;
+    let duplicados = 0;
+
+    // Intentar asignar cada curso del módulo
+    for (const curso of cursos) {
+      try {
+        await Assignment.create({
+          user: userId,
+          course: curso._id,
+          expiresAt
+        });
+        asignados++;
+      } catch (error) {
+        // Si hay error de duplicado (código 11000), solo contar como duplicado
+        if (error.code === 11000) {
+          duplicados++;
+        } else {
+          // Para otros errores, lanzarlos
+          throw error;
+        }
+      }
+    }
+
+    res.status(201).json({
+      mensaje: `Módulo asignado correctamente`,
+      modulo: moduleName,
+      totalCursos: cursos.length,
+      asignados,
+      duplicados
+    });
+  } catch (error) {
+    console.error("❌ assignModuleToUser:", error);
+    res.status(500).json({ mensaje: "Error al asignar módulo", error: error.message });
   }
 };

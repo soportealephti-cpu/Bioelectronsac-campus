@@ -9,6 +9,7 @@ import {
   LogOut,
   Menu
 } from "lucide-react";
+import Footer from "../components/Footer";
 
 
 export default function StudentLayout() {
@@ -182,13 +183,15 @@ export default function StudentLayout() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-x-hidden">
+      <main className="flex-1 overflow-x-hidden flex flex-col">
         {/* Espacio para topbar móvil/tablet */}
         <div className="h-16 lg:hidden" />
-        
-        <div className="p-4 sm:p-6 lg:p-8 max-w-full">
+
+        <div className="flex-1 p-4 sm:p-6 lg:p-4 max-w-full">
           <Outlet />
         </div>
+
+        <Footer />
       </main>
     </div>
   );

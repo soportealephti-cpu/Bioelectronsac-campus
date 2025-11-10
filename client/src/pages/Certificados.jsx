@@ -153,6 +153,7 @@ export default function Certificados() {
   const cursoTitulo = curso?.titulo || "Nombre del curso";
   const gerente = form.gerenteNombre || "Gerente General";
   const fechaLarga = formatearFechaLarga(form.emitDate);
+  const anioActual = form.emitDate ? new Date(form.emitDate).getFullYear() : new Date().getFullYear();
 
   const horas = (() => {
     const t = (cursoTitulo || "").toLowerCase();
@@ -202,7 +203,7 @@ export default function Certificados() {
       <div class="layer">
         <div class="top">
           <div class="num">CERTIFICADO N°${bigNumber}</div>
-          <div class="bio">BIO-2025</div>
+          <div class="bio">BIO-${anioActual}</div>
           <div class="title">Certificado de aprobación para:</div>
           <div class="alumno">${alumnoNombre}</div>
           <div class="texto">
@@ -234,7 +235,7 @@ export default function Certificados() {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="w-full px-4 sm:px-6 lg:px-6">
       {toast && (
         <Toast
           type={toast.type}
@@ -398,7 +399,7 @@ export default function Certificados() {
                 <div className="text-base sm:text-xl font-extrabold leading-none mb-1">
                   CERTIFICADO N°{form.number || ""}
                 </div>
-                <div className="font-bold text-[10px] sm:text-xs">BIO-2025</div>
+                <div className="font-bold text-[10px] sm:text-xs">BIO-{anioActual}</div>
                 <div className="mt-1 text-[10px] sm:text-[13px]">Certificado de aprobación para:</div>
                 <div className="text-lg sm:text-2xl font-extrabold leading-tight mt-1">
                   {alumnoNombre}

@@ -13,6 +13,7 @@ import {
   Database,
   Home
 } from "lucide-react";
+import Footer from "./Footer";
 
 export default function SidebarAdminLayout() {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export default function SidebarAdminLayout() {
     { label: "Inicio", icon: <Home size={18} />, href: "/admin/dashboard" },
     { label: "Usuarios", icon: <Users size={18} />, href: "/admin/usuarios" },
     { label: "Crear Curso", icon: <BookOpen size={18} />, href: "/admin/cursos" },
-    { label: "Asignar Curso", icon: <ClipboardList size={18} />, href: "/admin/asignar" },
+    { label: "Asignar Módulo", icon: <ClipboardList size={18} />, href: "/admin/asignar" },
     { label: "Crear Examen", icon: <FileCheck size={18} />, href: "/admin/examenes" },
     { label: "Resumen", icon: <CheckCircle size={18} />, href: "/admin/resumen" },
     { label: "Certificados", icon: <GraduationCap size={18} />, href: "/admin/certificados" },
@@ -208,15 +209,17 @@ export default function SidebarAdminLayout() {
       </div>
 
       {/* Contenido */}
-      <div className={`flex-1 overflow-x-hidden transition-all duration-300 ${
-        isDesktopCollapsed ? "lg:ml-20" : "lg:ml-64"
+      <div className={`flex-1 overflow-x-hidden transition-all duration-300 flex flex-col ${
+        isDesktopCollapsed ? "lg:ml-12" : "lg:ml-30"
       }`}>
         {/* Espacio para top bar móvil */}
         <div className="h-16 lg:hidden" />
-        
-        <div className="p-4 sm:p-6 lg:p-8 max-w-full">
+
+        <div className="flex-1 p-4 sm:p-6 lg:p-6 max-w-full">
           <Outlet />
         </div>
+
+        <Footer />
       </div>
     </div>
   );

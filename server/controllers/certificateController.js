@@ -492,11 +492,12 @@ exports.renderPdf = async (req, res) => {
 
     // 📅 FECHA - PUEDES CAMBIAR POSICIÓN Y TAMAÑO AQUÍ
     const dateFont = fontArchTH || fontRegular;
-    page.drawText(fechaTxt, { 
+    page.drawText(fechaTxt, {
       x: 40,   // ⬅️ Posición horizontal (más grande = más a la derecha)
       y: 40,   // ⬅️ Posición vertical (más grande = más arriba)
       size: 12, // ⬅️ Tamaño de la fuente (cambié de 9 a 12)
-      font: dateFont 
+      font: dateFont,
+      color: rgb(0, 0, 0) // ⬅️ Color negro para mejor visibilidad
     });
 
     // ✍️ FIRMA Y NOMBRES - PUEDES CAMBIAR POSICIÓN Y TAMAÑOS AQUÍ

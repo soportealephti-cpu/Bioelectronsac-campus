@@ -58,7 +58,7 @@ export default function StudentCourses() {
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-0">
+    <div className="w-full px-4 sm:px-6 lg:px-6">
       <header className="mb-6 sm:mb-8">
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Mis Cursos</h1>
         <p className="text-gray-500 text-sm sm:text-base mt-2">

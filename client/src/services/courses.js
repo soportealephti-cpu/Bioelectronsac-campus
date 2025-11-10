@@ -12,8 +12,9 @@ export const createCourse = async (courseData) => {
   const formData = new FormData();
   formData.append("titulo", courseData.titulo);
   formData.append("categoria", courseData.categoria);
+  formData.append("modulo", courseData.modulo || "");
   formData.append("pdf", courseData.file);
-  
+
   // Adjuntar imagen si está presente
   if (courseData.imagen) {
     formData.append("imagen", courseData.imagen);
@@ -31,12 +32,13 @@ export const updateCourse = async (id, courseData) => {
   const formData = new FormData();
   formData.append("titulo", courseData.titulo);
   formData.append("categoria", courseData.categoria);
-  
+  formData.append("modulo", courseData.modulo || "");
+
   // Adjuntar PDF si está presente
   if (courseData.file) {
     formData.append("pdf", courseData.file);
   }
-  
+
   // Adjuntar imagen si está presente
   if (courseData.imagen) {
     formData.append("imagen", courseData.imagen);

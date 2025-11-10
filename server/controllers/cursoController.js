@@ -57,8 +57,8 @@ exports.obtenerCursos = async (_req, res) => {
 exports.crearCurso = async (req, res) => {
   try {
     ensureCursosDir();
-    const { titulo, categoria } = req.body;
-    
+    const { titulo, categoria, modulo } = req.body;
+
     // Verificar si hay archivos adjuntos
     if (!req.files || !req.files.pdf) {
       return res.status(400).json({ mensaje: "Debe adjuntar un PDF" });
@@ -73,8 +73,8 @@ exports.crearCurso = async (req, res) => {
       imagenUrl = generateFileUrl(`/uploads/cursos/${req.files.imagen[0].filename}`, req);
     }
 
-    console.log("Creando curso con:", { titulo, categoria, pdf: req.files.pdf[0], imagen: req.files.imagen?.[0] });
-    const curso = await Course.create({ titulo, categoria, pdfUrl, imagenUrl });
+    console.log("Creando curso con:", { titulo, categoria, modulo, pdf: req.files.pdf[0], imagen: req.files.imagen?.[0] });
+    const curso = await Course.create({ titulo, categoria, modulo: modulo || "", pdfUrl, imagenUrl });
     res.status(201).json({ mensaje: "Curso creado correctamente", curso });
   } catch (error) {
     console.error("❌ crearCurso:", error);
@@ -86,7 +86,7 @@ exports.actualizarCurso = async (req, res) => {
   try {
     ensureCursosDir();
     const { id } = req.params;
-    const { titulo, categoria } = req.body;
+    const { titulo, categoria, modulo } = req.body;
 
     const curso = await Course.findById(id);
     if (!curso) return res.status(404).json({ mensaje: "Curso no encontrado" });
@@ -107,6 +107,7 @@ exports.actualizarCurso = async (req, res) => {
 
     if (typeof titulo === "string") curso.titulo = titulo;
     if (typeof categoria === "string") curso.categoria = categoria;
+    if (typeof modulo === "string") curso.modulo = modulo;
 
     await curso.save();
     res.json({ mensaje: "Curso actualizado", curso });
@@ -125,12 +126,27 @@ exports.eliminarCurso = async (req, res) => {
     // Eliminar archivos del servidor
     if (curso.pdfUrl) borrarArchivoPorUrl(curso.pdfUrl);
     if (curso.imagenUrl) borrarArchivoPorUrl(curso.imagenUrl);
-    
+
     await curso.deleteOne();
 
     res.json({ mensaje: "Curso eliminado correctamente" });
   } catch (error) {
     console.error("❌ eliminarCurso:", error);
     res.status(500).json({ mensaje: "Error al eliminar curso", error: error.message });
+  }
+};
+
+/**
+ * Obtener lista de módulos únicos desde los cursos existentes
+ */
+exports.obtenerModulos = async (_req, res) => {
+  try {
+    const modulos = await Course.distinct("modulo");
+    // Filtrar valores vacíos o nulos
+    const modulosFiltrados = modulos.filter(m => m && m.trim() !== "");
+    res.json(modulosFiltrados);
+  } catch (error) {
+    console.error("❌ obtenerModulos:", error);
+    res.status(500).json({ mensaje: "Error al obtener módulos", error: error.message });
   }
 };

@@ -6,8 +6,8 @@ const auth = require('../middlewares/authMiddleware');
 const ctrl = require("../controllers/examController");
 
 // ⚠️ IMPORTANTE: el orden de las rutas específicas va ANTES de "/:id"
-// Lista todos los exámenes
-router.get("/", auth, ctrl.listarExamenes);
+// Lista todos los exámenes (sin auth para consistencia con cursos y usuarios)
+router.get("/", ctrl.listarExamenes);
 
 // Crear examen
 router.post("/", auth, ctrl.crearExamen);

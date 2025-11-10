@@ -80,22 +80,28 @@ exports.eliminarExamen = async (req, res) => {
   }
 };
 
-// 👇 NUEVO: asignar/quitar curso de un examen
+// 👇 NUEVO: asignar/quitar curso o módulo de un examen
 exports.asignarCurso = async (req, res) => {
   try {
     console.log("📥 body:", req.body);
     const { id } = req.params;        // examId
-    const { courseId } = req.body;    // puede venir null para desasignar
+    const { courseId, modulo } = req.body;    // puede venir null para desasignar
 
     const exam = await Exam.findById(id);
     if (!exam) return res.status(404).json({ mensaje: "Examen no encontrado" });
 
+    // Asignar curso individual
     if (courseId) {
       const course = await Course.findById(courseId);
       if (!course) return res.status(400).json({ mensaje: "Curso no válido" });
       exam.courseId = courseId;
     } else {
       exam.courseId = null; // desasignar
+    }
+
+    // Asignar módulo (string)
+    if (typeof modulo === "string") {
+      exam.modulo = modulo;
     }
 
     await exam.save();
