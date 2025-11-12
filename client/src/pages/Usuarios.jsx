@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Plus, X, Trash2, Edit2, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { Plus, X, Trash2, Edit2, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { listUsers, createUser, updateUser, deleteUser } from "../services/users";
 import Toast from "../components/Toast";
 
@@ -13,6 +13,7 @@ export default function Usuarios() {
   const [usuarios, setUsuarios] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const [toast, setToast] = useState({ show: false, type: "success", message: "" });
+  const [searchTerm, setSearchTerm] = useState("");
 
   const showToast = (type, message, ms = 2200) => {
     setToast({ show: true, type, message });
@@ -221,11 +222,29 @@ export default function Usuarios() {
     }
   };
 
-  // Calcular paginación
-  const totalPaginas = Math.ceil(usuarios.length / USUARIOS_POR_PAGINA);
+  // Filtrar usuarios según término de búsqueda
+  const usuariosFiltrados = useMemo(() => {
+    if (!searchTerm.trim()) return usuarios;
+
+    const term = searchTerm.toLowerCase().trim();
+    return usuarios.filter(u => {
+      const nombreCompleto = `${u.apellido || ''} ${u.nombre || ''}`.toLowerCase();
+      const correo = (u.correo || '').toLowerCase();
+      const dni = (u.dni || '').toLowerCase();
+      const telefono = (u.celular || u.telefono || '').toLowerCase();
+
+      return nombreCompleto.includes(term) ||
+             correo.includes(term) ||
+             dni.includes(term) ||
+             telefono.includes(term);
+    });
+  }, [usuarios, searchTerm]);
+
+  // Calcular paginación con usuarios filtrados
+  const totalPaginas = Math.ceil(usuariosFiltrados.length / USUARIOS_POR_PAGINA);
   const indiceInicio = (paginaActual - 1) * USUARIOS_POR_PAGINA;
   const indiceFin = indiceInicio + USUARIOS_POR_PAGINA;
-  const usuariosPaginados = usuarios.slice(indiceInicio, indiceFin);
+  const usuariosPaginados = usuariosFiltrados.slice(indiceInicio, indiceFin);
 
   const irAPagina = (numeroPagina) => {
     setPaginaActual(numeroPagina);
@@ -272,14 +291,14 @@ export default function Usuarios() {
   };
 
   return (
-    <div className="w-full px-4 sm:px-6">
+    <div className="w-full">
       {toast.show && (
         <Toast type={toast.type} message={toast.message} onClose={() => setToast({ show: false })} />
       )}
 
       {/* Encabezado */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-700">Usuarios Registrados</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-center sm:items-center gap-4 mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-700 text-center sm:text-left">Usuarios Registrados</h1>
         <button
           onClick={abrirModalCrear}
           className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-60 text-sm sm:text-base w-full sm:w-auto justify-center"
@@ -289,6 +308,40 @@ export default function Usuarios() {
           <span className="hidden sm:inline">Crear Usuario</span>
           <span className="sm:hidden">Nuevo</span>
         </button>
+      </div>
+
+      {/* Barra de búsqueda */}
+      <div className="mb-6">
+        <div className="relative max-w-2xl">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPaginaActual(1); // Reset a la primera página al buscar
+            }}
+            placeholder="Buscar por nombre, DNI, correo o teléfono..."
+            className="w-full border-2 border-gray-300 rounded-lg pl-12 pr-4 py-3 text-sm sm:text-base focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-colors"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setPaginaActual(1);
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              title="Limpiar búsqueda"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
+        {searchTerm && (
+          <p className="text-sm text-gray-600 mt-2">
+            Mostrando {usuariosFiltrados.length} resultado{usuariosFiltrados.length !== 1 ? 's' : ''} de {usuarios.length} total{usuarios.length !== 1 ? 'es' : ''}
+          </p>
+        )}
       </div>
 
       {/* Vista Desktop - Tabla */}

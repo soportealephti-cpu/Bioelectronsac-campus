@@ -18,7 +18,10 @@ services:
 
   # Aplicación principal
   app:
-    build: .
+    build:
+      context: .
+      args:
+        REACT_APP_API_URL: https://api.campus.bioelectronsac.com
     container_name: bioelectron-app
     restart: unless-stopped
     ports:

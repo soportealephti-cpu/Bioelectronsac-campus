@@ -56,9 +56,9 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="w-full px-4 sm:px-6 lg:px-6">
+    <div className="w-full">
       {/* Bienvenida */}
-      <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-xl sm:rounded-2xl text-white p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 mt-6 sm:mt-0">
+      <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-xl sm:rounded-2xl text-white p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 text-center sm:text-left">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-3">¡Bienvenido al Panel! 👋</h1>
         <p className="text-green-100 text-sm sm:text-base lg:text-lg leading-relaxed">
           Gestiona tu plataforma educativa desde aquí. Acceso completo a usuarios, cursos, exámenes y más.

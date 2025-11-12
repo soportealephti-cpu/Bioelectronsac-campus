@@ -81,11 +81,11 @@ export default function Profile() {
   };
 
   return (
-    <div className="px-4 sm:px-6 max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
 
       {/* Header */}
-      <div className="mb-6 sm:mb-8">
+      <div className="mb-6 sm:mb-8 text-center sm:text-left">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Mi Perfil</h1>
         <p className="text-sm sm:text-base text-gray-600">Bienvenido de vuelta, gestiona tu información y revisa tu progreso académico.</p>
       </div>
@@ -114,7 +114,7 @@ export default function Profile() {
 
             {/* Información detallada */}
             <div className="p-4 sm:p-6 lg:p-8">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Información Personal</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6 text-center sm:text-left">Información Personal</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                 <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg sm:rounded-xl">
                   <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
@@ -163,7 +163,7 @@ export default function Profile() {
         {/* Estadísticas */}
         <div className="space-y-4 sm:space-y-6">
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Mi Progreso</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6 text-center sm:text-left">Mi Progreso</h3>
             <div className="space-y-3 sm:space-y-4">
               <div className="p-3 sm:p-4 bg-blue-50 rounded-lg sm:rounded-xl">
                 <div className="flex items-center gap-3">

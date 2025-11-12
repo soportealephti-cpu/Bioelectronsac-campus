@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Frontend React - Solo el cliente
+  bioelectron-frontend:
+    image: node:20-alpine
+    container_name: bioelectron-frontend
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "30108:3000"  # Frontend React
+    environment:
+      - NODE_ENV=production
+      # Esta variable debe ser HTTPS para evitar Mixed Content
+      - REACT_APP_API_URL=https://api.campus.bioelectronsac.com
+    command: >
+      sh -c "
+        apk add --no-cache git &&
+        # limpiar repo temporal y carpeta de app (por si el contenedor se reinicia)
+        rm -rf /tmp/repo &&
+        rm -rf /app/* /app/.* 2>/dev/null || true &&
+        # clonar el repo (usa la rama por defecto configurada en GitHub)
+        git clone https://github.com/soportealephti-cpu/Bioelectronsac-campus.git /tmp/repo &&
+        # copiar código al directorio de trabajo
+        cp -r /tmp/repo/* /app/ &&
+        cp -r /tmp/repo/.* /app/ 2>/dev/null || true &&
+        # build del frontend con la variable de entorno
+        cd /app/client &&
+        npm install -g copyfiles &&
+        npm install &&
+        # IMPORTANTE: export la variable antes del build para que React la compile correctamente
+        export REACT_APP_API_URL=https://api.campus.bioelectronsac.com &&
+        npm run build &&
+        npm install -g serve &&
+        serve -s build -l 3000 -n
+      "
+    networks:
+      - frontend-network
+
+networks:
+  frontend-network:
+    driver: bridge

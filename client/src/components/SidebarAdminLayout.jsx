@@ -30,7 +30,7 @@ export default function SidebarAdminLayout() {
     { label: "Inicio", icon: <Home size={18} />, href: "/admin/dashboard" },
     { label: "Usuarios", icon: <Users size={18} />, href: "/admin/usuarios" },
     { label: "Crear Curso", icon: <BookOpen size={18} />, href: "/admin/cursos" },
-    { label: "Asignar Módulo", icon: <ClipboardList size={18} />, href: "/admin/asignar" },
+    { label: "Asignar Curso", icon: <ClipboardList size={18} />, href: "/admin/asignar" },
     { label: "Crear Examen", icon: <FileCheck size={18} />, href: "/admin/examenes" },
     { label: "Resumen", icon: <CheckCircle size={18} />, href: "/admin/resumen" },
     { label: "Certificados", icon: <GraduationCap size={18} />, href: "/admin/certificados" },
@@ -215,7 +215,7 @@ export default function SidebarAdminLayout() {
         {/* Espacio para top bar móvil */}
         <div className="h-16 lg:hidden" />
 
-        <div className="flex-1 p-4 sm:p-6 lg:p-6 max-w-full">
+        <div className="flex-1 px-4 sm:px-6 lg:px-6 pt-30 pb-4 sm:pb-6 lg:pb-6 max-w-full">
           <Outlet />
         </div>
 

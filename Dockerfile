@@ -19,7 +19,11 @@ COPY client/ ./client/
 # Crear directorio para uploads
 RUN mkdir -p server/uploads
 
-# Construir la aplicación React
+# Argumentos de build para React (necesarios en tiempo de compilación)
+ARG REACT_APP_API_URL=https://api.campus.bioelectronsac.com
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+
+# Construir la aplicación React con las variables de entorno
 RUN cd client && npm run build
 
 # Instalar serve para servir archivos estáticos
