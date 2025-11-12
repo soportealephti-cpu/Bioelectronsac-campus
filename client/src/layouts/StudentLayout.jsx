@@ -187,7 +187,7 @@ export default function StudentLayout() {
         {/* Espacio para topbar móvil/tablet */}
         <div className="h-16 lg:hidden" />
 
-        <div className="flex-1 p-4 sm:p-6 lg:p-4 max-w-full">
+        <div className="flex-1 px-4 sm:px-6 lg:px-4 pt-30 pb-4 sm:pb-6 lg:pb-4 max-w-full">
           <Outlet />
         </div>
 

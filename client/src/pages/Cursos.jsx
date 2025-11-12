@@ -321,12 +321,12 @@ export default function Cursos() {
   };
 
   return (
-    <div className="w-full px-4 sm:px-6 lg:px-6">
+    <div className="w-full">
       {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-700">Gestión de Cursos</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-center sm:items-center gap-4 mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-700 text-center sm:text-left">Gestión de Cursos</h1>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={() => setShowAutoOrganize(true)}

@@ -1,0 +1,31 @@
+# Comandos para diagnosticar y encontrar el contenedor del backend
+
+# 1. Listar TODOS los contenedores corriendo
+docker ps
+
+# 2. Listar todos los contenedores (incluso detenidos)
+docker ps -a
+
+# 3. Ver las variables de entorno de un contenedor específico (reemplaza NOMBRE_CONTENEDOR)
+docker exec NOMBRE_CONTENEDOR env
+
+# 4. Ver logs de un contenedor específico
+docker logs NOMBRE_CONTENEDOR
+
+# 5. Buscar contenedores que expongan el puerto 5000 (puerto típico del backend)
+docker ps --filter "expose=5000"
+
+# 6. Ver contenedores relacionados con bioelectron
+docker ps -a | grep bioelectron
+
+# 7. Ver contenedores relacionados con "backend", "api", o "server"
+docker ps -a | grep -E "backend|api|server"
+
+# 8. Ver docker-compose activos en el sistema
+docker-compose ls 2>/dev/null || docker compose ls
+
+# 9. Inspeccionar un contenedor para ver toda su configuración
+docker inspect NOMBRE_CONTENEDOR
+
+# 10. Entrar al contenedor para revisar archivos
+docker exec -it NOMBRE_CONTENEDOR sh

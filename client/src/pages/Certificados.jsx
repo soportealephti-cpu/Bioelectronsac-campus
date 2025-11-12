@@ -235,7 +235,7 @@ export default function Certificados() {
   };
 
   return (
-    <div className="w-full px-4 sm:px-6 lg:px-6">
+    <div className="w-full">
       {toast && (
         <Toast
           type={toast.type}
