@@ -29,20 +29,24 @@ const startServer = async () => {
     await seedAdminUser();
 
     // 3. Configurar y arrancar Express
-    // CORS (simple y suficiente para dev)
+    // CORS (permitir todos los orígenes)
     app.use(
       cors({
-        origin: "http://localhost:3000",
+        origin: "*",
+        credentials: false,
       })
     );
     app.use(express.json());
+
+    // Manejar preflight requests
+    app.options('*', cors());
 
     // Servir /uploads (una sola vez)
     app.use(
       "/uploads",
       express.static(path.join(__dirname, "uploads"), {
         setHeaders(res) {
-          res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+          res.setHeader("Access-Control-Allow-Origin", "*");
           res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
           res.setHeader("Accept-Ranges", "bytes");
         },
