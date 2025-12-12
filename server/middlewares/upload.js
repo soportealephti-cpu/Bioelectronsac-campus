@@ -18,7 +18,15 @@ const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, dest),
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}_${file.fieldname}${ext}`);
+    const basename = path.basename(file.originalname, ext);
+    // Normalizar el nombre del archivo: eliminar acentos y caracteres especiales
+    const safeName = basename
+      .normalize("NFD") // Descomponer caracteres Unicode
+      .replace(/[\u0300-\u036f]/g, "") // Eliminar marcas diacríticas (acentos)
+      .replace(/[^a-zA-Z0-9_-]/g, "_") // Reemplazar caracteres no alfanuméricos por _
+      .replace(/_{2,}/g, "_") // Reemplazar múltiples _ por uno solo
+      .toLowerCase();
+    cb(null, `${Date.now()}_${safeName}${ext}`);
   },
 });
 

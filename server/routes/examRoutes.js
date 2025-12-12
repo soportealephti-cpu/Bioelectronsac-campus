@@ -21,10 +21,13 @@ router.delete("/:id", auth, ctrl.eliminarExamen);
 // Asignar (o quitar) curso a un examen
 router.put("/:id/asignar-curso", auth, ctrl.asignarCurso);
 
+// Obtener intentos de una asignación
+router.get("/attempts/:assignmentId", auth, ctrl.getAttempts);
+
 // Registrar resultado del examen
 router.post("/submit", auth, ctrl.submitResult);
 
-// Obtener examen por ID (esta debe ir al final para no “comerse” las rutas anteriores)
+// Obtener examen por ID (esta debe ir al final para no "comerse" las rutas anteriores)
 router.get("/:id", auth, ctrl.getById);
 
 module.exports = router;

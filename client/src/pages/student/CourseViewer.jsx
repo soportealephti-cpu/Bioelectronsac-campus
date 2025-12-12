@@ -4,19 +4,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { getAssignmentDetail } from "../../services/assignments";
 import { ChevronLeft, FileText, GraduationCap, X } from "lucide-react";
 
-// Obtener URL base del API desde variables de entorno
-const getApiUrl = () => {
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
-  return process.env.NODE_ENV === 'development'
-    ? 'http://localhost:5000'
-    : 'https://api.campus.bioelectronsac.com';
-};
-
-const API = getApiUrl();
-const normalizeUrl = (u) => (!u ? "" : u.startsWith("http") ? u : `${API}${u.startsWith("/") ? u : `/${u}`}`);
-
 export default function CourseViewer() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -31,9 +18,9 @@ export default function CourseViewer() {
       try {
         const a = await getAssignmentDetail(id);
         const titulo = a?.course?.titulo || a?.curso?.titulo || "Curso";
-        const rawPdf = a?.course?.pdfUrl || a?.curso?.pdfUrl || a?.course?.materialUrl || "";
+        const pdfUrl = a?.course?.pdfUrl || a?.curso?.pdfUrl || a?.course?.materialUrl || "";
         const examId = a?.exam?._id || a?.examen?._id || null;
-        setInfo({ titulo, pdfUrl: normalizeUrl(rawPdf), examId });
+        setInfo({ titulo, pdfUrl, examId });
       } finally {
         setLoading(false);
       }

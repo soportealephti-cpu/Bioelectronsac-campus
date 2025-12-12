@@ -54,15 +54,16 @@ exports.getSummary = async (_req, res) => {
             nombre: [a.user?.nombre, a.user?.apellido].filter(Boolean).join(" ") || "-",
             correo: a.user?.correo || "-",
           },
-          
+
         curso: {
             titulo: a.course?.titulo || "-",
             materialUrl: a.course?.materialUrl || a.course?.pdfUrl || ""  // <-- añade esto
           },
 
           examen: ex ? { titulo: ex.titulo } : null,
-          // quitamos intentos reales por ahora
-          ultimoResultado: cert ? "aprobado" : "-",
+          // 👇 Incluir intentos y último resultado del Assignment
+          intentos: a.intentos || 0,
+          ultimoResultado: a.ultimoResultado || (cert ? "aprobado" : "-"),
           aprobado: !!cert,
           certificado: cert
             ? { id: String(cert._id), number: cert.number, emitDate: cert.emitDate }
@@ -145,7 +146,9 @@ exports.updateAssignmentStatus = async (req, res) => {
       },
       curso: { titulo: asg.course?.titulo || "-" },
       examen: ex ? { titulo: ex.titulo } : null,
-      ultimoResultado: cert ? "aprobado" : (aprobado ? "aprobado" : "-"),
+      // 👇 Incluir intentos
+      intentos: asg.intentos || 0,
+      ultimoResultado: asg.ultimoResultado || (cert ? "aprobado" : (aprobado ? "aprobado" : "-")),
       aprobado: !!cert || !!aprobado,
       certificado: cert
         ? { id: String(cert._id), number: cert.number, emitDate: cert.emitDate }

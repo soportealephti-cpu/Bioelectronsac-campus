@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  bioelectron-server:
+    image: node:18-alpine
+    container_name: bioelectron-campus-server
+    restart: always
+    ports:
+      - "5000:5000"
+    working_dir: /app
+    command: >
+      sh -c "
+      apk add --no-cache git rsync &&
+      echo '=== Descargando repositorio desde Git ===' &&
+      rm -rf /tmp/repo-temp &&
+      git clone https://github.com/soportealephti-cpu/Bioelectronsac-campus.git /tmp/repo-temp &&
+      echo '=== Sincronizando carpeta server ===' &&
+      mkdir -p /app/repo/server &&
+      rsync -av --delete --exclude='uploads' /tmp/repo-temp/server/ /app/repo/server/ &&
+      rm -rf /tmp/repo-temp &&
+      cd /app/repo/server &&
+      echo '=== Instalando dependencias con npm i -F ===' &&
+      npm i -F &&
+      echo '=== Iniciando servidor en puerto 5000 ===' &&
+      node index.js
+      "
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - uploads-data:/app/repo/server/uploads
+    networks:
+      - bioelectron-network
+
+networks:
+  bioelectron-network:
+    driver: bridge
+
+volumes:
+  uploads-data:
+    driver: local

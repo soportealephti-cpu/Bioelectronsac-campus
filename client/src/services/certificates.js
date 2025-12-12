@@ -9,9 +9,10 @@ export const getCertificateTemplate = async () => {
   return data;
 };
 
-export const updateCertificateTemplate = async ({ gerenteNombre, backgroundFile, firmaFile }) => {
+export const updateCertificateTemplate = async ({ gerenteNombre, lastSeq, backgroundFile, firmaFile }) => {
   const fd = new FormData();
   if (gerenteNombre !== undefined) fd.append("gerenteNombre", gerenteNombre);
+  if (lastSeq !== undefined && lastSeq !== null) fd.append("lastSeq", lastSeq);
   if (backgroundFile) fd.append("background", backgroundFile);
   if (firmaFile) fd.append("firma", firmaFile);
 

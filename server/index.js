@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
 const connectDB = require("./config/db");
+const { initGridFS } = require("./config/gridfs");
 const seedAdminUser = require("./createAdmin.js"); // Importar la función de seeding
 
 // Routers
@@ -25,10 +26,13 @@ const startServer = async () => {
     // 1. Conectar a la base de datos
     await connectDB();
 
-    // 2. Sembrar el usuario administrador (si no existe)
+    // 2. Inicializar GridFS para almacenamiento de archivos
+    initGridFS();
+
+    // 3. Sembrar el usuario administrador (si no existe)
     await seedAdminUser();
 
-    // 3. Configurar y arrancar Express
+    // 4. Configurar y arrancar Express
     // CORS (permitir todos los orígenes)
     app.use(
       cors({

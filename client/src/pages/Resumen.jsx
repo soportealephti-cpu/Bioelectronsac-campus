@@ -350,6 +350,20 @@ export default function Resumen() {
                         )}
                       </div>
                     </div>
+
+                    {/* 👇 NUEVO: Mostrar intentos */}
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600 font-medium">Intentos realizados:</span>
+                        <span className={`font-semibold ${
+                          (row?.intentos || 0) >= 3
+                            ? "text-red-600"
+                            : (row?.intentos || 0) >= 2
+                            ? "text-amber-600"
+                            : "text-gray-900"
+                        }`}>{row?.intentos || 0} de 3</span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Columna 2: Acciones */}
@@ -468,6 +482,20 @@ export default function Resumen() {
                       ) : (
                         <span className="text-gray-500 text-sm">Sin intentos</span>
                       )}
+                    </div>
+                  </div>
+
+                  {/* 👇 NUEVO: Mostrar intentos (móvil) */}
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600 font-medium">Intentos realizados:</span>
+                      <span className={`font-semibold ${
+                        (row?.intentos || 0) >= 3
+                          ? "text-red-600"
+                          : (row?.intentos || 0) >= 2
+                          ? "text-amber-600"
+                          : "text-gray-900"
+                      }`}>{row?.intentos || 0} de 3</span>
                     </div>
                   </div>
                 </div>

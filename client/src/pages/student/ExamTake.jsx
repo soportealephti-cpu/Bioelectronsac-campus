@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { getExamById, submitExamResult } from "../../services/exams";
-import { CheckCircle2, ChevronLeft, XCircle } from "lucide-react";
+import { getExamById, submitExamResult, getExamAttempts } from "../../services/exams";
+import { CheckCircle2, ChevronLeft, XCircle, AlertCircle } from "lucide-react";
 import {
   ensureCertificateForAssignment,
 } from "../../services/certificates";
@@ -97,6 +97,14 @@ export default function ExamTake() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [loadError, setLoadError] = useState("");
 
+  // 👇 NUEVO: Estado para intentos
+  const [attemptInfo, setAttemptInfo] = useState({
+    intentosRealizados: 0,
+    intentosRestantes: 3,
+    puedeIntentar: true,
+    ultimoResultado: "-"
+  });
+
   // sticky solo aquí
   useEffect(() => {
     const aside = document.querySelector("aside");
@@ -134,7 +142,13 @@ export default function ExamTake() {
           setLoading(false);
           return;
         }
-        const raw = await getExamById(examId);
+
+        // 👇 Cargar examen y verificar intentos en paralelo
+        const [raw, attemptsData] = await Promise.all([
+          getExamById(examId),
+          assignmentId ? getExamAttempts(assignmentId).catch(() => null) : Promise.resolve(null)
+        ]);
+
         const titulo = raw?.titulo || raw?.name || "Examen";
         const preguntasRaw = raw?.preguntas || raw?.questions || [];
         const preguntas = preguntasRaw.map((q, i) => normalizeQuestion(q, i));
@@ -148,6 +162,21 @@ export default function ExamTake() {
           "";
 
         setExam({ _id: raw?._id || examId, titulo, preguntas, courseId });
+
+        // 👇 Actualizar información de intentos
+        if (attemptsData && attemptsData.ok) {
+          setAttemptInfo({
+            intentosRealizados: attemptsData.intentosRealizados || 0,
+            intentosRestantes: attemptsData.intentosRestantes || 0,
+            puedeIntentar: attemptsData.puedeIntentar !== false,
+            ultimoResultado: attemptsData.ultimoResultado || "-"
+          });
+
+          // Si no puede intentar más, mostrar error
+          if (!attemptsData.puedeIntentar) {
+            setLoadError("Has alcanzado el número máximo de intentos (3) para este examen.");
+          }
+        }
       } catch (e) {
         console.error("getExamById error:", e);
         setLoadError("No se pudo cargar el examen.");
@@ -155,7 +184,7 @@ export default function ExamTake() {
         setLoading(false);
       }
     })();
-  }, [examId]);
+  }, [examId, assignmentId]);
 
   const respond = (qid, key) => setAnswers((s) => ({ ...s, [qid]: key }));
 
@@ -186,22 +215,40 @@ export default function ExamTake() {
         total,
         userId: me?.id || me?._id || undefined,
       });
-      
+
       // Usar los datos del backend para determinar si aprobó
       const examResult = result.examResult || {};
       const backendPassed = result.assignment?.passed || examResult.passed || false;
       const minimumRequired = examResult.minimumPassScore || Math.ceil(total * 0.7);
-      
-      setSubmitted({ 
-        score, 
-        correct, 
-        total, 
+
+      setSubmitted({
+        score,
+        correct,
+        total,
         passed: backendPassed,
-        minimumRequired 
+        minimumRequired,
+        intentosRealizados: examResult.intentosRealizados || attemptInfo.intentosRealizados + 1,
+        intentosRestantes: examResult.intentosRestantes || attemptInfo.intentosRestantes - 1
       });
       setShowConfirmModal(true);
+
+      // 👇 Actualizar información de intentos después de enviar
+      setAttemptInfo({
+        intentosRealizados: examResult.intentosRealizados || attemptInfo.intentosRealizados + 1,
+        intentosRestantes: examResult.intentosRestantes || attemptInfo.intentosRestantes - 1,
+        puedeIntentar: (examResult.intentosRestantes || attemptInfo.intentosRestantes - 1) > 0,
+        ultimoResultado: backendPassed ? "aprobado" : "desaprobado"
+      });
     } catch (e) {
       console.error("submitExamResult:", e?.response?.data || e.message);
+
+      // 👇 Si el error es por intentos agotados, mostrar mensaje específico
+      if (e?.response?.status === 400 && e?.response?.data?.message?.includes("máximo de intentos")) {
+        setLoadError(e.response.data.message);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        alert("Error al enviar el examen. Por favor intenta nuevamente.");
+      }
     }
   };
 
@@ -228,6 +275,58 @@ export default function ExamTake() {
         <h1 className="text-xl font-semibold text-gray-800">{exam.titulo}</h1>
         <div />
       </div>
+
+      {/* 👇 NUEVO: Mostrar información de intentos */}
+      {assignmentId && (
+        <div className={`mb-4 p-4 rounded-lg border-2 ${
+          attemptInfo.intentosRestantes > 1
+            ? "bg-blue-50 border-blue-300"
+            : attemptInfo.intentosRestantes === 1
+            ? "bg-amber-50 border-amber-300"
+            : "bg-red-50 border-red-300"
+        }`}>
+          <div className="flex items-start gap-3">
+            <AlertCircle className={`flex-shrink-0 mt-0.5 ${
+              attemptInfo.intentosRestantes > 1
+                ? "text-blue-600"
+                : attemptInfo.intentosRestantes === 1
+                ? "text-amber-600"
+                : "text-red-600"
+            }`} size={20} />
+            <div className="flex-1">
+              <div className="font-semibold text-gray-900 mb-1">
+                Información de Intentos
+              </div>
+              <div className="text-sm text-gray-700 space-y-1">
+                <div className="flex justify-between">
+                  <span>Intentos realizados:</span>
+                  <span className="font-semibold">{attemptInfo.intentosRealizados} de 3</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Intentos restantes:</span>
+                  <span className={`font-semibold ${
+                    attemptInfo.intentosRestantes === 0
+                      ? "text-red-600"
+                      : attemptInfo.intentosRestantes === 1
+                      ? "text-amber-600"
+                      : "text-green-600"
+                  }`}>{attemptInfo.intentosRestantes}</span>
+                </div>
+                {attemptInfo.ultimoResultado !== "-" && (
+                  <div className="flex justify-between pt-1 border-t">
+                    <span>Último resultado:</span>
+                    <span className={`font-semibold capitalize ${
+                      attemptInfo.ultimoResultado === "aprobado"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}>{attemptInfo.ultimoResultado}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         {exam.preguntas.map((q, idx) => (
@@ -299,6 +398,26 @@ export default function ExamTake() {
             <div className="text-sm text-gray-500 mt-1">
               Mínimo para aprobar: {submitted.minimumRequired || Math.ceil(submitted.total * 0.7)} respuestas correctas (70%).
             </div>
+
+            {/* 👇 NUEVO: Mostrar intentos en el modal */}
+            {assignmentId && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm">
+                <div className="flex justify-between mb-1">
+                  <span className="text-gray-600">Intentos realizados:</span>
+                  <span className="font-semibold text-gray-900">{submitted.intentosRealizados || 0} de 3</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Intentos restantes:</span>
+                  <span className={`font-semibold ${
+                    (submitted.intentosRestantes || 0) === 0
+                      ? "text-red-600"
+                      : (submitted.intentosRestantes || 0) === 1
+                      ? "text-amber-600"
+                      : "text-green-600"
+                  }`}>{submitted.intentosRestantes || 0}</span>
+                </div>
+              </div>
+            )}
 
             <div className="mt-6 flex flex-col gap-3">
               {submitted.passed && (

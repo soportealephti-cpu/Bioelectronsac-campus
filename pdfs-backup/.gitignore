@@ -1,0 +1,9 @@
+# Ignorar todos los archivos PDF
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# Mantener la estructura de carpetas
+!.gitignore

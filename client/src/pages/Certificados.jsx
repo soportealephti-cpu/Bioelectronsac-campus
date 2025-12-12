@@ -17,7 +17,16 @@ function formatearFechaLarga(isoDate) {
     "enero","febrero","marzo","abril","mayo","junio",
     "julio","agosto","septiembre","octubre","noviembre","diciembre",
   ];
-  const d = new Date(isoDate);
+
+  // 👇 CORREGIDO: Manejar zona horaria correctamente
+  let d;
+  if (typeof isoDate === 'string' && isoDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const [year, month, day] = isoDate.split('-').map(Number);
+    d = new Date(year, month - 1, day); // Crear fecha en zona horaria local
+  } else {
+    d = new Date(isoDate);
+  }
+
   const dia = String(d.getDate()).padStart(2, "0");
   const mes = meses[d.getMonth()];
   const anio = d.getFullYear();
@@ -55,7 +64,10 @@ export default function Certificados() {
       ]);
 
       setTpl(tplRes);
-      setForm((f) => ({ ...f, gerenteNombre: tplRes.gerenteNombre || "" }));
+      setForm((f) => ({
+        ...f,
+        gerenteNombre: tplRes.gerenteNombre || ""
+      }));
       setPreview({
         backgroundUrl: tplRes.backgroundUrl || "",
         firmaUrl: tplRes.firmaUrl || "",
@@ -108,13 +120,17 @@ export default function Certificados() {
 
   const saveTemplate = async () => {
     try {
-      await updateCertificateTemplate({               // ✅
+      // 👇 Si se modifica el número, actualizar lastSeq = número - 1
+      const lastSeqUpdate = form.number ? Number(form.number) - 1 : undefined;
+
+      await updateCertificateTemplate({
         gerenteNombre: form.gerenteNombre,
+        lastSeq: lastSeqUpdate,
         backgroundFile: form.backgroundFile || undefined,
         firmaFile: form.firmaFile || undefined,
       });
       await loadAll();
-      showToast("success", "Plantilla actualizada");
+      showToast("success", "Plantilla actualizada. El próximo certificado será: " + (form.number || "auto"));
     } catch (e) {
       console.error(e?.response?.data || e.message);
       showToast("error", "No se pudo actualizar la plantilla");
@@ -182,14 +198,14 @@ export default function Certificados() {
   .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .layer{position:absolute;inset:0;padding:var(--pad);font-size:14px;color:#111}
   .top{width:100%;text-align:center;margin-top:7%}
-  .num{font-weight:800;font-size:26px;margin-bottom:6px}
-  .bio{font-weight:700;font-size:14px}
-  .title{margin-top:6px;font-size:15px}
-  .alumno{margin-top:2px;font-weight:800;font-size:28px}
-  .texto{margin-top:8px;font-size:14px;line-height:1.35}
+  .num{font-weight:800;font-size:28px;margin-bottom:6px}
+  .bio{font-weight:700;font-size:16px}
+  .title{margin-top:6px;font-size:16px}
+  .alumno{margin-top:2px;font-weight:800;font-size:30px}
+  .texto{margin-top:8px;font-size:15px;line-height:1.35}
   .texto b{font-weight:700}
   .fecha{position:absolute;left:7%;bottom:9%;font-size:12px}
-  .firmaBox{position:absolute;right:12%;bottom:7%;display:flex;flex-direction:column;align-items:center}
+  .firmaBox{position:absolute;right:12%;bottom:11%;display:flex;flex-direction:column;align-items:center}
   .firmaImg{height:70px;object-fit:contain;margin-bottom:-8px}
   .line{border-top:1px solid #222;width:220px;margin-top:2px}
   .gerente{margin-top:6px;font-size:12px}
@@ -289,14 +305,21 @@ export default function Certificados() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs sm:text-sm mb-1 font-medium">Número (opcional)</label>
+                <label className="block text-xs sm:text-sm mb-1 font-medium">
+                  Número del Próximo Certificado
+                </label>
                 <input
                   name="number"
+                  type="number"
+                  min="1"
                   value={form.number}
                   onChange={onChange}
                   className="w-full border rounded px-3 py-2 text-sm"
-                  placeholder="N°"
+                  placeholder="Ej: 150"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 Modifica este número y presiona "Guardar plantilla" para cambiar la secuencia
+                </p>
               </div>
               <div>
                 <label className="block text-xs sm:text-sm mb-1 font-medium">Fecha de emisión</label>
@@ -394,17 +417,17 @@ export default function Certificados() {
 
             {/* overlays */}
             <div className="absolute inset-0 p-[10%] sm:p-[14%]">
-              {/* bloque superior */}
+              {/* bloque superior - 👇 TAMAÑOS DE FUENTE AUMENTADOS */}
               <div className="w-full text-center mt-[5%] sm:mt-[7%]">
-                <div className="text-base sm:text-xl font-extrabold leading-none mb-1">
+                <div className="text-lg sm:text-2xl font-extrabold leading-none mb-1">
                   CERTIFICADO N°{form.number || ""}
                 </div>
-                <div className="font-bold text-[10px] sm:text-xs">BIO-{anioActual}</div>
-                <div className="mt-1 text-[10px] sm:text-[13px]">Certificado de aprobación para:</div>
-                <div className="text-lg sm:text-2xl font-extrabold leading-tight mt-1">
+                <div className="font-bold text-xs sm:text-sm">BIO-{anioActual}</div>
+                <div className="mt-1 text-xs sm:text-[15px]">Certificado de aprobación para:</div>
+                <div className="text-xl sm:text-3xl font-extrabold leading-tight mt-1">
                   {alumnoNombre}
                 </div>
-                <div className="mt-2 text-[10px] sm:text-[13px] leading-snug px-2 sm:px-0">
+                <div className="mt-2 text-xs sm:text-[15px] leading-snug px-2 sm:px-0">
                   Por haber completado satisfactoriamente el curso:
                   <span className="font-semibold"> {cursoTitulo}</span> con una
                   duración de
@@ -417,8 +440,8 @@ export default function Certificados() {
                 {fechaLarga}
               </div>
 
-              {/* firma + gerente abajo derecha */}
-              <div className="absolute right-[15%] sm:right-[28%] bottom-[8%] sm:bottom-[10%] flex flex-col items-center">
+              {/* firma + gerente abajo derecha - 👇 POSICIÓN SUBIDA */}
+              <div className="absolute right-[15%] sm:right-[28%] bottom-[12%] sm:bottom-[14%] flex flex-col items-center">
                 {(preview.firmaUrl || tpl?.firmaUrl) && (
                   <img
                     src={preview.firmaUrl || tpl?.firmaUrl}

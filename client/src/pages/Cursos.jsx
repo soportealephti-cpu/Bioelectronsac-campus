@@ -46,7 +46,10 @@ export default function Cursos() {
     const grupos = {};
 
     cursos.forEach(curso => {
-      const moduloNombre = curso.modulo || "Sin módulo";
+      // 👇 CORREGIDO: Normalizar módulo (trimear y verificar si está vacío)
+      const moduloRaw = curso.modulo;
+      const moduloNombre = (moduloRaw && moduloRaw.trim() !== "") ? moduloRaw.trim() : "Sin módulo";
+
       if (!grupos[moduloNombre]) {
         grupos[moduloNombre] = [];
       }

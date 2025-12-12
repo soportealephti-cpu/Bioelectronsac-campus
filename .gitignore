@@ -1,0 +1,16 @@
+# Node
+node_modules/
+**/node_modules/
+
+# Build
+dist/
+build/
+
+# Env
+.env
+.env.*
+
+# Archivos locales
+.claude/settings.local.json
+nul
+**/nul

@@ -125,6 +125,42 @@ exports.getById = async (req, res) => {
   }
 };
 
+// 👇 NUEVO: obtener intentos de una asignación
+exports.getAttempts = async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+
+    if (!assignmentId) {
+      return res.status(400).json({ ok: false, message: "Falta el ID de la asignación" });
+    }
+
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ ok: false, message: "Asignación no encontrada" });
+    }
+
+    // Verificar que la asignación pertenece al usuario autenticado
+    if (req.user && assignment.user.toString() !== req.user.id) {
+      return res.status(403).json({ ok: false, message: "No tienes permiso para ver esta asignación" });
+    }
+
+    const intentosRealizados = assignment.intentos || 0;
+    const intentosRestantes = Math.max(0, 3 - intentosRealizados);
+    const puedeIntentar = intentosRestantes > 0;
+
+    res.json({
+      ok: true,
+      intentosRealizados,
+      intentosRestantes,
+      puedeIntentar,
+      ultimoResultado: assignment.ultimoResultado || "-"
+    });
+  } catch (e) {
+    console.error("getAttempts:", e);
+    res.status(500).json({ ok: false, mensaje: "Error al obtener intentos", error: e.message });
+  }
+};
+
 exports.submitResult = async (req, res) => {
   try {
     // OBTENER EL ID DE USUARIO DEL TOKEN, NO DEL BODY
@@ -155,10 +191,25 @@ exports.submitResult = async (req, res) => {
       return res.status(403).json({ ok: false, message: "No tienes permiso para actualizar esta asignación" });
     }
 
+    // 👇 VALIDAR NÚMERO MÁXIMO DE INTENTOS (3)
+    const currentIntentos = assignment.intentos || 0;
+    if (currentIntentos >= 3) {
+      return res.status(400).json({
+        ok: false,
+        message: "Has alcanzado el número máximo de intentos (3)",
+        intentosRestantes: 0,
+        intentosRealizados: currentIntentos
+      });
+    }
+
     // Ahora que es seguro, procede a actualizar
     // Lógica de aprobación: 70% o más del total de preguntas
     const minimumPassScore = Math.ceil(total * 0.7);
     const passed = correct >= minimumPassScore;
+
+    // 👇 INCREMENTAR INTENTOS Y ACTUALIZAR RESULTADO
+    const nuevoIntentos = currentIntentos + 1;
+    const ultimoResultado = passed ? "aprobado" : "desaprobado";
 
     const updatedAssignment = await Assignment.findByIdAndUpdate(
       assignmentId,
@@ -169,22 +220,26 @@ exports.submitResult = async (req, res) => {
         lastCorrect: correct ?? null,
         lastAnswers: answers,
         passed: passed,
+        intentos: nuevoIntentos,
+        ultimoResultado: ultimoResultado,
         updatedAt: new Date(),
       },
       { new: true }
     );
 
     // responde "ok" para que el front siga
-    res.json({ 
-      ok: true, 
-      message: "Resultado registrado", 
+    res.json({
+      ok: true,
+      message: "Resultado registrado",
       assignment: updatedAssignment,
       examResult: {
         passed,
         minimumPassScore,
         score: score ?? 0,
         correct: correct ?? 0,
-        total: total ?? 0
+        total: total ?? 0,
+        intentosRealizados: nuevoIntentos,
+        intentosRestantes: 3 - nuevoIntentos
       }
     });
   } catch (e) {

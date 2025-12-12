@@ -41,3 +41,9 @@ export const submitExamResult = async (payload) => {
   return data;
 };
 
+// 👇 NUEVO: obtener intentos de una asignación
+export const getExamAttempts = async (assignmentId) => {
+  const { data } = await api.get(`${API_URL}/attempts/${assignmentId}`);
+  return data;
+};
+

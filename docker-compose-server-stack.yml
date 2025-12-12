@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  bioelectron-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: bioelectron-campus-server
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - bioelectron-network
+    volumes:
+      # Volumen para persistir uploads si es necesario
+      - uploads-data:/app/repo/server/uploads
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  bioelectron-network:
+    driver: bridge
+
+volumes:
+  uploads-data:
+    driver: local

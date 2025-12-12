@@ -8,8 +8,8 @@ const certificateTemplateSchema = new mongoose.Schema(
     firmaUrl:      { type: String, default: "" },
 
     year:    { type: Number, default: new Date().getFullYear() },
-    // dejamos lastSeq en 3999 para que el primero del año sea 4000
-    lastSeq: { type: Number, default: 3999 },
+    // 👇 CAMBIADO: valor inicial ajustable (149 para que el primero sea 150)
+    lastSeq: { type: Number, default: 149 },
   },
   { timestamps: true }
 );

@@ -71,7 +71,21 @@ const fontCache = new Map();
 
 function fechaLarga(iso) {
   const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-  const d = iso ? new Date(iso) : new Date();
+  let d;
+
+  if (iso) {
+    // 👇 CORREGIDO: Manejar zona horaria correctamente
+    // Si viene como string tipo "2025-01-17", parsearlo como fecha local, no UTC
+    if (typeof iso === 'string' && iso.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = iso.split('-').map(Number);
+      d = new Date(year, month - 1, day); // Crear fecha en zona horaria local
+    } else {
+      d = new Date(iso);
+    }
+  } else {
+    d = new Date();
+  }
+
   return `Lima, ${String(d.getDate()).padStart(2, "0")} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
 }
 
@@ -164,11 +178,20 @@ exports.updateTemplate = async (req, res) => {
 
     let tpl = await CertificateTemplate.findOne();
     if (!tpl) tpl = await CertificateTemplate.create({});
-    console.log(`📋 Plantilla actual:`, { backgroundUrl: tpl.backgroundUrl, firmaUrl: tpl.firmaUrl, gerenteNombre: tpl.gerenteNombre });
+    console.log(`📋 Plantilla actual:`, { backgroundUrl: tpl.backgroundUrl, firmaUrl: tpl.firmaUrl, gerenteNombre: tpl.gerenteNombre, lastSeq: tpl.lastSeq });
 
     if (req.body?.gerenteNombre !== undefined) {
       tpl.gerenteNombre = req.body.gerenteNombre;
       console.log(`✏️ Actualizando nombre gerente: ${req.body.gerenteNombre}`);
+    }
+
+    // 👇 NUEVO: Permitir actualizar lastSeq (número inicial)
+    if (req.body?.lastSeq !== undefined) {
+      const newLastSeq = Number(req.body.lastSeq);
+      if (!isNaN(newLastSeq) && newLastSeq >= 0) {
+        tpl.lastSeq = newLastSeq;
+        console.log(`🔢 Actualizando lastSeq (número inicial): ${newLastSeq}`);
+      }
     }
 
     if (req.files?.background?.[0]) {
@@ -179,7 +202,7 @@ exports.updateTemplate = async (req, res) => {
     } else {
       console.log(`⚠️ No se recibió archivo background`);
     }
-    
+
     if (req.files?.firma?.[0]) {
       const file = req.files.firma[0];
       const newUrl = `${baseUrl(req)}/uploads/certificados/${file.filename}`;
@@ -190,8 +213,8 @@ exports.updateTemplate = async (req, res) => {
     }
 
     await tpl.save();
-    console.log(`💾 Plantilla guardada:`, { backgroundUrl: tpl.backgroundUrl, firmaUrl: tpl.firmaUrl, gerenteNombre: tpl.gerenteNombre });
-    
+    console.log(`💾 Plantilla guardada:`, { backgroundUrl: tpl.backgroundUrl, firmaUrl: tpl.firmaUrl, gerenteNombre: tpl.gerenteNombre, lastSeq: tpl.lastSeq });
+
     res.json({ mensaje: "Plantilla actualizada", template: tpl });
   } catch (e) {
     console.error(`❌ Error updateTemplate:`, e);
@@ -206,9 +229,10 @@ exports.nextNumber = async (req, res) => {
     if (!tpl) tpl = await CertificateTemplate.create({});
     ensureTemplateYear(tpl, year);
 
-    // Cambiado a 3 dígitos y sin número inicial de 25
-    const number = `${String(tpl.lastSeq).padStart(3, "0")}`;
-    res.json({ number });
+    // 👇 CORREGIDO: Devolver el SIGUIENTE número (lastSeq + 1)
+    const nextNum = tpl.lastSeq + 1;
+    const number = `${String(nextNum).padStart(3, "0")}`;
+    res.json({ number, lastSeq: tpl.lastSeq }); // También enviar lastSeq para debugging
   } catch (e) {
     res.status(500).json({ mensaje: "Error de correlativo", error: e.message });
   }
@@ -355,18 +379,25 @@ exports.renderPdf = async (req, res) => {
     const userDoc   = cert.user || cert.userId;
     const courseDoc = cert.course || cert.courseId;
 
-    const alumnoNombre = [userDoc?.nombre, userDoc?.apellido].filter(Boolean).join(" ") || "Nombre del alumno";
-    const cursoTitulo  = courseDoc?.titulo || "Nombre del curso";
-    const horas        = horasPorCurso(cursoTitulo);
+    // 👇 USAR LOS DATOS GUARDADOS EN EL CERTIFICADO (snapshot inmutable)
+    const alumnoNombre = cert.studentName || [userDoc?.nombre, userDoc?.apellido].filter(Boolean).join(" ") || "Nombre del alumno";
+    const cursoTitulo  = cert.courseTitle || courseDoc?.titulo || "Nombre del curso";
+    const horas        = cert.hours || horasPorCurso(cursoTitulo);
     const numero       = cert.number || "";
     const anio         = new Date(cert.emitDate || Date.now()).getFullYear();
     const bioCode      = `BIO-${anio}`;
-    const fechaTxt     = fechaLarga(cert.emitDate);
-    const gerente      = currentTemplate?.gerenteNombre || "Gerente General";
+    const fechaTxt     = cert.dateText || fechaLarga(cert.emitDate); // 👈 USAR dateText guardado
+    const gerente      = cert.managerName || currentTemplate?.gerenteNombre || "Gerente General";
     const fondoUrl     = currentTemplate?.backgroundUrl || "";
     const firmaUrl     = currentTemplate?.firmaUrl || "";
 
-    console.log(`📋 Datos de plantilla para certificado ${cert._id}:`);
+    console.log(`📋 Datos del certificado ${cert._id}:`);
+    console.log(`   - emitDate (raw): ${cert.emitDate}`);
+    console.log(`   - emitDate (type): ${typeof cert.emitDate}`);
+    console.log(`   - fechaTxt: ${fechaTxt}`);
+    console.log(`   - alumnoNombre: ${alumnoNombre}`);
+    console.log(`   - cursoTitulo: ${cursoTitulo}`);
+    console.log(`   - numero: ${numero}`);
     console.log(`   - backgroundUrl: ${fondoUrl}`);
     console.log(`   - firmaUrl: ${firmaUrl}`);
     console.log(`   - gerenteNombre: ${gerente}`);
@@ -456,46 +487,46 @@ exports.renderPdf = async (req, res) => {
 
     // 🎯 AQUÍ PUEDES MODIFICAR TODAS LAS POSICIONES, TAMAÑOS Y ESPACIADO
     let y = height - 170; // ⬅️ Posición inicial desde arriba (más alto = más arriba)
-    
+
     // CERTIFICADO N° - PUEDES CAMBIAR EL TAMAÑO AQUÍ
-    if (numero) { 
+    if (numero) {
       const certificateFont = fontMontanapha || fontBold;
-      drawCenter(`CERTIFICADO N° ${String(numero)}`, y, certificateFont, 26); // ⬅️ Cambié de 22 a 26 (más grande)
-      y -= 32; // ⬅️ Espaciado después del número (más grande = más espacio)
+      drawCenter(`CERTIFICADO N° ${String(numero)}`, y, certificateFont, 28); // ⬅️ AUMENTADO de 26 a 28
+      y -= 32; // ⬅️ Espaciado después del número
     }
-    
+
     // BIO 2025 - PUEDES CAMBIAR EL TAMAÑO AQUÍ
     const bioFont = fontGaret || fontBold;
-    drawCenter(bioCode.toUpperCase(), y, bioFont, 14); // ⬅️ Cambié de 12 a 14
-    y -= 30; // ⬅️ Espaciado después de BIO 2025 (cambié de 24 a 30)
-    
+    drawCenter(bioCode.toUpperCase(), y, bioFont, 16); // ⬅️ AUMENTADO de 14 a 16
+    y -= 30; // ⬅️ Espaciado después de BIO 2025
+
     // TEXTO "Certificado de aprobación para:" - PUEDES CAMBIAR EL TAMAÑO AQUÍ
     const certificateTextFont = fontAsangha || fontRegular;
-    drawCenter("Certificado de aprobación para:", y, certificateTextFont, 14); // ⬅️ Cambié de 12 a 14
-    y -= 35; // ⬅️ Espaciado después (cambié de 30 a 35)
-    
-    // NOMBRE DEL ALUMNO - PUEDES CAMBIAR EL TAMAÑO AQUÍ  
-    drawCenter(alumnoNombre.toUpperCase(), y, fontBold, 24); // ⬅️ Cambié de 20 a 24 (más grande)
-    y -= 45; // ⬅️ Espaciado después del nombre (cambié de 36 a 45)
+    drawCenter("Certificado de aprobación para:", y, certificateTextFont, 16); // ⬅️ AUMENTADO de 14 a 16
+    y -= 35; // ⬅️ Espaciado después
+
+    // NOMBRE DEL ALUMNO - PUEDES CAMBIAR EL TAMAÑO AQUÍ
+    drawCenter(alumnoNombre.toUpperCase(), y, fontBold, 26); // ⬅️ AUMENTADO de 24 a 26
+    y -= 45; // ⬅️ Espaciado después del nombre
 
     // DESCRIPCIÓN "Por haber completado..." - PUEDES CAMBIAR EL TAMAÑO AQUÍ
-    drawCenter("Por haber completado satisfactoriamente el curso:", y, certificateTextFont, 13); // ⬅️ Cambié de 11 a 13
-    y -= 20; // ⬅️ Espaciado entre líneas (cambié de 16 a 20)
-    
+    drawCenter("Por haber completado satisfactoriamente el curso:", y, certificateTextFont, 15); // ⬅️ AUMENTADO de 13 a 15
+    y -= 20; // ⬅️ Espaciado entre líneas
+
     // TÍTULO DEL CURSO - PUEDES CAMBIAR EL TAMAÑO AQUÍ
-    drawCenter(cursoTitulo, y, fontBold, 15); // ⬅️ Cambié de 12 a 15 (más grande)
-    y -= 20; // ⬅️ Espaciado (cambié de 16 a 20)
-    
-    // HORAS ACADÉMICAS - PUEDES CAMBIAR EL TAMAÑO AQUÍ  
-    drawCenter(`con una duración de ${horas} horas académicas.`, y, certificateTextFont, 13); // ⬅️ Cambié de 11 a 13
-    y -= 50; // ⬅️ Espaciado final (cambié de 40 a 50)
+    drawCenter(cursoTitulo, y, fontBold, 17); // ⬅️ AUMENTADO de 15 a 17
+    y -= 20; // ⬅️ Espaciado
+
+    // HORAS ACADÉMICAS - PUEDES CAMBIAR EL TAMAÑO AQUÍ
+    drawCenter(`con una duración de ${horas} horas académicas.`, y, certificateTextFont, 15); // ⬅️ AUMENTADO de 13 a 15
+    y -= 50; // ⬅️ Espaciado final
 
     // 📅 FECHA - PUEDES CAMBIAR POSICIÓN Y TAMAÑO AQUÍ
     const dateFont = fontArchTH || fontRegular;
     page.drawText(fechaTxt, {
       x: 40,   // ⬅️ Posición horizontal (más grande = más a la derecha)
-      y: 40,   // ⬅️ Posición vertical (más grande = más arriba)
-      size: 12, // ⬅️ Tamaño de la fuente (cambié de 9 a 12)
+      y: 60,   // ⬅️ SUBIDA de 40 a 60 (más arriba)
+      size: 12, // ⬅️ Tamaño de la fuente
       font: dateFont,
       color: rgb(0, 0, 0) // ⬅️ Color negro para mejor visibilidad
     });
@@ -506,35 +537,35 @@ exports.renderPdf = async (req, res) => {
         const fBytes = await fetchImageBytes(firmaUrl);
         const isPng = firmaUrl.toLowerCase().endsWith(".png");
         const fImg = isPng ? await pdfDoc.embedPng(fBytes) : await pdfDoc.embedJpg(fBytes);
-        
+
         // 📏 TAMAÑO Y POSICIÓN DE LA FIRMA
-        const fw = 200; // ⬅️ Ancho de la firma (cambié de 180 a 200)
+        const fw = 200; // ⬅️ Ancho de la firma
         const scale = fw / fImg.width;
         const fh = fImg.height * scale;
-        const fx = width - fw - 80; // ⬅️ Posición horizontal (cambié de 60 a 80)
-        const fy = 80; // ⬅️ Posición vertical (cambié de 70 a 80)
-        
+        const fx = width - fw - 80; // ⬅️ Posición horizontal
+        const fy = 105; // ⬅️ Posición vertical (SUBIDO de 80 a 105 - más arriba)
+
         page.drawImage(fImg, { x: fx, y: fy, width: fw, height: fh });
-        page.drawLine({ start: { x: fx, y: 72 }, end: { x: fx + fw, y: 72 }, thickness: 1, color: rgb(0.1,0.1,0.1) });
-        
+        page.drawLine({ start: { x: fx, y: 97 }, end: { x: fx + fw, y: 97 }, thickness: 1, color: rgb(0.1,0.1,0.1) }); // Línea también subida
+
         // 👤 NOMBRE DEL GERENTE - PUEDES CAMBIAR EL TAMAÑO AQUÍ
-        const gw = fontRegular.widthOfTextAtSize(gerente, 12); // ⬅️ Cambié de 10 a 12
-        page.drawText(gerente, { 
-          x: fx + (fw - gw) / 2, 
-          y: 58, // ⬅️ Cambié de 49 a 58
-          size: 12, // ⬅️ Cambié de 10 a 12
-          font: fontRegular 
+        const gw = fontRegular.widthOfTextAtSize(gerente, 12);
+        page.drawText(gerente, {
+          x: fx + (fw - gw) / 2,
+          y: 83, // ⬅️ SUBIDO de 58 a 83
+          size: 12,
+          font: fontRegular
         });
-        
+
         // 💼 CARGO "Gerente General" - PUEDES CAMBIAR EL TAMAÑO AQUÍ
         const cargo = "Gerente General";
-        const cw = fontRegular.widthOfTextAtSize(cargo, 10); // ⬅️ Cambié de 9 a 10
-        page.drawText(cargo, { 
-          x: fx + (fw - cw) / 2, 
-          y: 44, // ⬅️ Cambié de 36 a 44
-          size: 10, // ⬅️ Cambié de 9 a 10
-          font: fontRegular, 
-          color: rgb(0.4,0.4,0.4) 
+        const cw = fontRegular.widthOfTextAtSize(cargo, 10);
+        page.drawText(cargo, {
+          x: fx + (fw - cw) / 2,
+          y: 69, // ⬅️ SUBIDO de 44 a 69
+          size: 10,
+          font: fontRegular,
+          color: rgb(0.4,0.4,0.4)
         });
       } catch (_) {}
     }

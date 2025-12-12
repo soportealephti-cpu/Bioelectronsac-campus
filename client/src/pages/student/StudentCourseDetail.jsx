@@ -1,12 +1,10 @@
-// client/src/pages/student/CourseViewer.jsx
-import { useEffect, useMemo, useState } from "react";
+// client/src/pages/student/StudentCourseDetail.jsx
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getAssignmentDetail } from "../../services/assignments";
 import { ChevronLeft, FileText, GraduationCap, X } from "lucide-react";
 
-const API = "http://localhost:5000";
-
-export default function CourseViewer() {
+export default function StudentCourseDetail() {
   const { id } = useParams(); // assignmentId
   const navigate = useNavigate();
 
@@ -14,27 +12,13 @@ export default function CourseViewer() {
   const [info, setInfo] = useState({ titulo: "Curso", pdfUrl: "", examId: null });
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // por si más adelante lo usas
-  const me = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("authUser") || "{}"); }
-    catch { return {}; }
-  }, []);
-
-  const normalizeUrl = (u) => {
-    if (!u) return "";
-    if (u.startsWith("http://") || u.startsWith("https://")) return u;
-    return `${API}${u.startsWith("/") ? u : `/${u}`}`;
-  };
-
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
         const a = await getAssignmentDetail(id);
         const titulo = a?.course?.titulo || a?.curso?.titulo || "Curso";
-        const rawPdf =
-          a?.course?.pdfUrl || a?.curso?.pdfUrl || a?.course?.materialUrl || "";
-        const pdfUrl = normalizeUrl(rawPdf);
+        const pdfUrl = a?.course?.pdfUrl || a?.curso?.pdfUrl || a?.course?.materialUrl || "";
         const examId = a?.exam?._id || a?.examen?._id || null;
         setInfo({ titulo, pdfUrl, examId });
       } catch (e) {

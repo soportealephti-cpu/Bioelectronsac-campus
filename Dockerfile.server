@@ -1,0 +1,17 @@
+FROM node:18-alpine
+
+# Instalar git
+RUN apk add --no-cache git
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Copiar script de entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Exponer puerto
+EXPOSE 5000
+
+# Usar el script de entrypoint
+ENTRYPOINT ["/entrypoint.sh"]

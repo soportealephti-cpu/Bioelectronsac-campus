@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Verificación de PDFs en BD</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 36px;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .curso-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #fafafa;
+            transition: all 0.3s;
+        }
+
+        .curso-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .curso-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+
+        .curso-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+            flex: 1;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .badge-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .badge-error {
+            background: #ef4444;
+            color: white;
+        }
+
+        .curso-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .info-item {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .pdf-url {
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            word-break: break-all;
+            margin-top: 5px;
+        }
+
+        .test-link {
+            display: inline-block;
+            margin-top: 5px;
+            padding: 5px 10px;
+            background: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .test-link:hover {
+            background: #2563eb;
+        }
+
+        .error {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test - Verificación de PDFs en Base de Datos</h1>
+        <p class="subtitle">Verificando URLs de PDFs almacenadas en MongoDB</p>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Consultando base de datos...</p>
+        </div>
+
+        <div id="error" style="display: none;"></div>
+
+        <div id="stats" style="display: none;" class="stats">
+            <div class="stat-card">
+                <h3 id="totalCursos">0</h3>
+                <p>Total Cursos</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="conPdf">0</h3>
+                <p>Con PDF</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="sinPdf">0</h3>
+                <p>Sin PDF</p>
+            </div>
+        </div>
+
+        <div id="filters" style="display: none;" class="filters">
+            <button class="filter-btn active" onclick="filtrar('todos')">Todos</button>
+            <button class="filter-btn" onclick="filtrar('con-pdf')">Con PDF</button>
+            <button class="filter-btn" onclick="filtrar('sin-pdf')">Sin PDF</button>
+        </div>
+
+        <div id="cursos"></div>
+    </div>
+
+    <script>
+        // Configuración de la API
+        const API_URL = 'http://localhost:5000/api';
+        let cursosData = [];
+        let filtroActual = 'todos';
+
+        // Función para obtener los cursos
+        async function obtenerCursos() {
+            try {
+                const response = await fetch(`${API_URL}/cursos`);
+
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                const cursos = await response.json();
+                cursosData = cursos;
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('stats').style.display = 'grid';
+                document.getElementById('filters').style.display = 'flex';
+
+                mostrarEstadisticas(cursos);
+                mostrarCursos(cursos);
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').style.display = 'none';
+                const errorDiv = document.getElementById('error');
+                errorDiv.style.display = 'block';
+                errorDiv.className = 'error';
+                errorDiv.innerHTML = `
+                    <strong>❌ Error al conectar con la base de datos</strong><br>
+                    <p style="margin-top: 10px;">${error.message}</p>
+                    <p style="margin-top: 10px; font-size: 13px;">
+                        <strong>Asegúrate de que:</strong><br>
+                        1. El servidor esté corriendo: <code>cd server && npm start</code><br>
+                        2. El servidor esté en el puerto 5000<br>
+                        3. MongoDB esté conectado
+                    </p>
+                `;
+            }
+        }
+
+        function mostrarEstadisticas(cursos) {
+            const total = cursos.length;
+            const conPdf = cursos.filter(c => c.pdfUrl && c.pdfUrl.trim() !== '').length;
+            const sinPdf = total - conPdf;
+
+            document.getElementById('totalCursos').textContent = total;
+            document.getElementById('conPdf').textContent = conPdf;
+            document.getElementById('sinPdf').textContent = sinPdf;
+        }
+
+        function mostrarCursos(cursos) {
+            const cursosDiv = document.getElementById('cursos');
+
+            if (cursos.length === 0) {
+                cursosDiv.innerHTML = '<div class="no-data">No hay cursos en la base de datos</div>';
+                return;
+            }
+
+            let html = '';
+
+            cursos.forEach((curso, index) => {
+                const tienePdf = curso.pdfUrl && curso.pdfUrl.trim() !== '';
+
+                html += `
+                    <div class="curso-card" data-tipo="${tienePdf ? 'con-pdf' : 'sin-pdf'}">
+                        <div class="curso-header">
+                            <div class="curso-title">${index + 1}. ${curso.titulo}</div>
+                            <span class="badge ${tienePdf ? 'badge-success' : 'badge-error'}">
+                                ${tienePdf ? '✓ Con PDF' : '✗ Sin PDF'}
+                            </span>
+                        </div>
+
+                        <div class="curso-info">
+                            <div class="info-item">
+                                <span class="info-label">ID:</span> ${curso._id}
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Categoría:</span> ${curso.categoria || 'N/A'}
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Módulo:</span> ${curso.modulo || 'N/A'}
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Imagen:</span> ${curso.imagenUrl ? 'Sí' : 'No'}
+                            </div>
+                        </div>
+
+                        ${tienePdf ? `
+                            <div class="pdf-url">
+                                <strong>URL PDF:</strong> ${curso.pdfUrl}
+                            </div>
+                            <a href="${curso.pdfUrl}" target="_blank" class="test-link">
+                                🔗 Probar enlace PDF
+                            </a>
+                        ` : `
+                            <div class="pdf-url" style="background: #fef2f2; color: #991b1b;">
+                                ⚠️ Este curso NO tiene URL de PDF en la base de datos
+                            </div>
+                        `}
+                    </div>
+                `;
+            });
+
+            cursosDiv.innerHTML = html;
+        }
+
+        function filtrar(tipo) {
+            filtroActual = tipo;
+
+            // Actualizar botones activos
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Filtrar cursos
+            const cards = document.querySelectorAll('.curso-card');
+            cards.forEach(card => {
+                if (tipo === 'todos') {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = card.dataset.tipo === tipo ? 'block' : 'none';
+                }
+            });
+        }
+
+        // Cargar cursos al iniciar
+        obtenerCursos();
+    </script>
+</body>
+</html>
