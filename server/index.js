@@ -26,13 +26,13 @@ const startServer = async () => {
     // 1. Conectar a la base de datos
     await connectDB();
 
-    // 2. Inicializar GridFS para almacenamiento de archivos
+    // 2. Inicializar GridFS para sistema de triple respaldo
     initGridFS();
 
     // 3. Sembrar el usuario administrador (si no existe)
     await seedAdminUser();
 
-    // 4. Configurar y arrancar Express
+    // 3. Configurar y arrancar Express
     // CORS (permitir todos los orígenes)
     app.use(
       cors({

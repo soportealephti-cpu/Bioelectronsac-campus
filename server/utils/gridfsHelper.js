@@ -1,171 +1,156 @@
-// server/utils/gridfsHelper.js
-const fs = require("fs");
-const path = require("path");
-const mongoose = require("mongoose");
-const { getGridFSBucket } = require("../config/gridfs");
-const { Readable } = require("stream");
+const { Readable } = require('stream');
+const { getGridFSBucket } = require('../config/gridfs');
+const path = require('path');
+const fs = require('fs');
+const { ObjectId } = require('mongodb');
 
 /**
  * Sube un archivo a GridFS
- * @param {Buffer} fileBuffer - Buffer del archivo
+ * @param {Buffer} buffer - Buffer del archivo
  * @param {string} filename - Nombre del archivo
  * @param {string} contentType - Tipo MIME del archivo
- * @returns {Promise<ObjectId>} - ID del archivo en GridFS
+ * @returns {Promise<ObjectId>} ID del archivo en GridFS
  */
-async function uploadToGridFS(fileBuffer, filename, contentType) {
+async function uploadToGridFS(buffer, filename, contentType) {
   return new Promise((resolve, reject) => {
     try {
       const bucket = getGridFSBucket();
+      const readableStream = Readable.from(buffer);
 
-      // Crear stream de lectura desde el buffer
-      const readableStream = Readable.from(fileBuffer);
-
-      // Crear stream de escritura a GridFS
       const uploadStream = bucket.openUploadStream(filename, {
-        contentType: contentType,
+        contentType,
         metadata: {
-          uploadedAt: new Date(),
-          originalName: filename
+          uploadedAt: new Date()
         }
       });
 
-      // Pipe del buffer a GridFS
       readableStream.pipe(uploadStream);
-
-      uploadStream.on('error', (error) => {
-        console.error('❌ Error al subir a GridFS:', error);
-        reject(error);
-      });
 
       uploadStream.on('finish', () => {
         console.log(`✅ Archivo subido a GridFS: ${filename} (ID: ${uploadStream.id})`);
         resolve(uploadStream.id);
       });
+
+      uploadStream.on('error', (error) => {
+        console.error(`❌ Error subiendo a GridFS:`, error);
+        reject(error);
+      });
     } catch (error) {
-      console.error('❌ Error en uploadToGridFS:', error);
+      console.error(`❌ Error en uploadToGridFS:`, error);
       reject(error);
     }
   });
 }
 
 /**
- * Descarga un archivo de GridFS (VERSIÓN ASYNC/AWAIT)
- * @param {string|ObjectId} fileId - ID del archivo en GridFS
+ * Descarga un archivo desde GridFS
+ * @param {string} fileId - ID del archivo en GridFS
  * @returns {Promise<{buffer: Buffer, filename: string, contentType: string}>}
  */
 async function downloadFromGridFS(fileId) {
-  try {
-    const bucket = getGridFSBucket();
+  return new Promise(async (resolve, reject) => {
+    try {
+      const bucket = getGridFSBucket();
+      const objectId = new ObjectId(fileId);
 
-    // Convertir a ObjectId si es string
-    const objectId = typeof fileId === 'string' ? new mongoose.Types.ObjectId(fileId) : fileId;
+      // Obtener metadatos del archivo
+      const files = await bucket.find({ _id: objectId }).toArray();
 
-    // Buscar metadata del archivo usando await
-    const files = await bucket.find({ _id: objectId }).toArray();
+      if (files.length === 0) {
+        return reject(new Error('Archivo no encontrado en GridFS'));
+      }
 
-    if (!files || files.length === 0) {
-      throw new Error('Archivo no encontrado en GridFS');
-    }
-
-    const file = files[0];
-
-    // Descargar archivo como buffer
-    return new Promise((resolve, reject) => {
+      const file = files[0];
       const chunks = [];
+
       const downloadStream = bucket.openDownloadStream(objectId);
 
       downloadStream.on('data', (chunk) => {
         chunks.push(chunk);
       });
 
-      downloadStream.on('error', (error) => {
-        console.error('❌ Error al descargar de GridFS:', error);
-        reject(error);
-      });
-
       downloadStream.on('end', () => {
         const buffer = Buffer.concat(chunks);
-        console.log(`✅ Archivo descargado de GridFS: ${file.filename} (${buffer.length} bytes)`);
         resolve({
           buffer,
           filename: file.filename,
           contentType: file.contentType || 'application/octet-stream'
         });
       });
-    });
-  } catch (error) {
-    console.error('❌ Error en downloadFromGridFS:', error);
-    throw error;
-  }
+
+      downloadStream.on('error', (error) => {
+        console.error(`❌ Error descargando desde GridFS:`, error);
+        reject(error);
+      });
+    } catch (error) {
+      console.error(`❌ Error en downloadFromGridFS:`, error);
+      reject(error);
+    }
+  });
 }
 
 /**
  * Elimina un archivo de GridFS
- * @param {string|ObjectId} fileId - ID del archivo en GridFS
- * @returns {Promise<void>}
+ * @param {string} fileId - ID del archivo a eliminar
  */
 async function deleteFromGridFS(fileId) {
   try {
     const bucket = getGridFSBucket();
-
-    // Convertir a ObjectId si es string
-    const objectId = typeof fileId === 'string' ? new mongoose.Types.ObjectId(fileId) : fileId;
-
+    const objectId = new ObjectId(fileId);
     await bucket.delete(objectId);
-    console.log(`✅ Archivo eliminado de GridFS (ID: ${fileId})`);
+    console.log(`✅ Archivo eliminado de GridFS: ${fileId}`);
   } catch (error) {
-    console.error('❌ Error al eliminar de GridFS:', error);
+    console.error(`❌ Error eliminando de GridFS:`, error);
     throw error;
   }
 }
 
 /**
- * Guarda una copia del archivo en /pdfs-backup/
- * @param {Buffer} fileBuffer - Buffer del archivo
+ * Guarda un archivo en la carpeta de respaldo /pdfs-backup
+ * @param {Buffer} buffer - Buffer del archivo
  * @param {string} filename - Nombre del archivo
- * @param {string} subfolder - Subcarpeta (cursos, certificados, etc.)
- * @returns {string} - Ruta donde se guardó el archivo
+ * @param {string} subfolder - Subcarpeta (ej: 'cursos', 'certificados')
+ * @returns {string} Ruta relativa del archivo guardado
  */
-function saveToBackupFolder(fileBuffer, filename, subfolder = 'cursos') {
+function saveToBackupFolder(buffer, filename, subfolder = '') {
   try {
-    const backupDir = path.join(__dirname, '..', '..', 'pdfs-backup', subfolder);
+    const backupDir = path.join(__dirname, '..', 'pdfs-backup', subfolder);
 
-    // Asegurar que existe el directorio
+    // Crear directorio si no existe
     if (!fs.existsSync(backupDir)) {
       fs.mkdirSync(backupDir, { recursive: true });
     }
 
-    const backupPath = path.join(backupDir, filename);
+    const filePath = path.join(backupDir, filename);
+    fs.writeFileSync(filePath, buffer);
 
-    // Guardar archivo
-    fs.writeFileSync(backupPath, fileBuffer);
+    const relativePath = path.join('pdfs-backup', subfolder, filename);
+    console.log(`✅ Archivo guardado en respaldo: ${relativePath}`);
 
-    console.log(`✅ Archivo guardado en backup: ${backupPath}`);
-
-    // Retornar ruta relativa desde la raíz del proyecto
-    return `/pdfs-backup/${subfolder}/${filename}`;
+    return relativePath;
   } catch (error) {
-    console.error('❌ Error al guardar en backup:', error);
+    console.error(`❌ Error guardando en carpeta de respaldo:`, error);
     throw error;
   }
 }
 
 /**
- * Elimina un archivo de /pdfs-backup/
- * @param {string} relativePath - Ruta relativa del archivo
+ * Elimina un archivo de la carpeta de respaldo
+ * @param {string} backupPath - Ruta relativa del archivo (ej: 'pdfs-backup/cursos/archivo.pdf')
  */
-function deleteFromBackupFolder(relativePath) {
+function deleteFromBackupFolder(backupPath) {
   try {
-    if (!relativePath) return;
+    if (!backupPath) return;
 
-    const fullPath = path.join(__dirname, '..', '..', relativePath);
+    const fullPath = path.join(__dirname, '..', backupPath);
 
     if (fs.existsSync(fullPath)) {
       fs.unlinkSync(fullPath);
-      console.log(`✅ Archivo eliminado de backup: ${fullPath}`);
+      console.log(`✅ Archivo eliminado del respaldo: ${backupPath}`);
     }
   } catch (error) {
-    console.warn('⚠️  No se pudo eliminar archivo de backup:', error.message);
+    console.error(`❌ Error eliminando del respaldo:`, error);
+    // No lanzar error, solo logear (el respaldo es secundario)
   }
 }
 
