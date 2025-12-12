@@ -81,7 +81,8 @@ exports.crearCurso = async (req, res) => {
     }
 
     const pdfFile = req.files.pdf[0];
-    const pdfBuffer = fs.readFileSync(pdfFile.path);
+    const pdfFilePath = path.join(cursosDir, pdfFile.filename);
+    const pdfBuffer = fs.readFileSync(pdfFilePath);
 
     console.log("📤 Guardando PDF con sistema de triple respaldo...");
 
@@ -110,7 +111,8 @@ exports.crearCurso = async (req, res) => {
 
     if (req.files.imagen && req.files.imagen[0]) {
       const imagenFile = req.files.imagen[0];
-      const imagenBuffer = fs.readFileSync(imagenFile.path);
+      const imagenFilePath = path.join(cursosDir, imagenFile.filename);
+      const imagenBuffer = fs.readFileSync(imagenFilePath);
 
       console.log("📤 Guardando imagen con sistema de triple respaldo...");
 
@@ -151,15 +153,8 @@ exports.crearCurso = async (req, res) => {
       imagenOriginalName
     });
 
-    // Limpiar archivos temporales de multer
-    try {
-      fs.unlinkSync(pdfFile.path);
-      if (req.files.imagen && req.files.imagen[0]) {
-        fs.unlinkSync(req.files.imagen[0].path);
-      }
-    } catch (e) {
-      console.warn("⚠️ No se pudieron eliminar archivos temporales:", e.message);
-    }
+    // Archivos ya están en GridFS y /pdfs-backup,
+    // Multer los guarda directamente en /uploads/cursos (no hay temporales que limpiar)
 
     console.log("✅ Curso creado exitosamente con triple respaldo");
     res.status(201).json({ mensaje: "Curso creado correctamente", curso });
@@ -184,7 +179,8 @@ exports.actualizarCurso = async (req, res) => {
     // Actualizar PDF si se envía uno nuevo
     if (req.files && req.files.pdf && req.files.pdf[0]) {
       const pdfFile = req.files.pdf[0];
-      const pdfBuffer = fs.readFileSync(pdfFile.path);
+      const pdfFilePath = path.join(cursosDir, pdfFile.filename);
+      const pdfBuffer = fs.readFileSync(pdfFilePath);
 
       console.log("📤 Actualizando PDF con sistema de triple respaldo...");
 
@@ -210,15 +206,13 @@ exports.actualizarCurso = async (req, res) => {
       curso.pdfGridFsId = pdfGridFsId;
       curso.pdfBackupPath = pdfBackupPath;
       curso.pdfOriginalName = pdfFile.originalname;
-
-      // Limpiar temporal
-      try { fs.unlinkSync(pdfFile.path); } catch {}
     }
 
     // Actualizar imagen si se envía una nueva
     if (req.files && req.files.imagen && req.files.imagen[0]) {
       const imagenFile = req.files.imagen[0];
-      const imagenBuffer = fs.readFileSync(imagenFile.path);
+      const imagenFilePath = path.join(cursosDir, imagenFile.filename);
+      const imagenBuffer = fs.readFileSync(imagenFilePath);
 
       console.log("📤 Actualizando imagen con sistema de triple respaldo...");
 
@@ -244,9 +238,6 @@ exports.actualizarCurso = async (req, res) => {
       curso.imagenGridFsId = imagenGridFsId;
       curso.imagenBackupPath = imagenBackupPath;
       curso.imagenOriginalName = imagenFile.originalname;
-
-      // Limpiar temporal
-      try { fs.unlinkSync(imagenFile.path); } catch {}
     }
 
     if (typeof titulo === "string") curso.titulo = titulo;
