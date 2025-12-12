@@ -1,37 +1,32 @@
-// server/config/gridfs.js
-const mongoose = require("mongoose");
-const { GridFSBucket } = require("mongodb");
+const mongoose = require('mongoose');
+const { GridFSBucket } = require('mongodb');
 
-let gfsBucket = null;
+let bucket;
 
 /**
- * Inicializa GridFS Bucket
- * Debe llamarse después de conectar a MongoDB
+ * Inicializa GridFS bucket cuando MongoDB esté conectado
  */
 function initGridFS() {
-  if (mongoose.connection.readyState !== 1) {
-    throw new Error("MongoDB debe estar conectado antes de inicializar GridFS");
+  if (!mongoose.connection.db) {
+    throw new Error('MongoDB no está conectado');
   }
 
-  const db = mongoose.connection.db;
-
-  // Crear bucket para archivos de cursos
-  gfsBucket = new GridFSBucket(db, {
-    bucketName: "courseFiles" // Nombre del bucket en MongoDB
+  bucket = new GridFSBucket(mongoose.connection.db, {
+    bucketName: 'uploads'
   });
 
-  console.log("✅ GridFS inicializado correctamente");
-  return gfsBucket;
+  console.log('✅ GridFS inicializado correctamente');
+  return bucket;
 }
 
 /**
- * Obtiene la instancia de GridFS Bucket
+ * Obtiene el bucket de GridFS (lo inicializa si es necesario)
  */
 function getGridFSBucket() {
-  if (!gfsBucket) {
-    throw new Error("GridFS no ha sido inicializado. Llama a initGridFS() primero.");
+  if (!bucket) {
+    return initGridFS();
   }
-  return gfsBucket;
+  return bucket;
 }
 
 module.exports = {
