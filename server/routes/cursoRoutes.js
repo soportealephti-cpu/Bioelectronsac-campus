@@ -39,6 +39,9 @@ router.get("/", ctrl.obtenerCursos);
 router.get("/with-stats", ctrl.listarCursosConConteo);
 router.get("/modulos", ctrl.obtenerModulos);
 
+// servir archivos con sistema de triple respaldo (GridFS → /uploads → /pdfs-backup → Google Drive)
+router.get("/file/:tipo/:fileId", ctrl.servirArchivo);
+
 // crear (con PDF e imagen)
 router.post("/", upload.fields([{ name: "pdf", maxCount: 1 }, { name: "imagen", maxCount: 1 }]), ctrl.crearCurso);
 
