@@ -70,29 +70,17 @@ export default function StudentCourseDetail() {
         </button>
       </div>
 
-      {/* Visor PDF - Abre en nueva pestaña como en admin */}
+      {/* Visor PDF con vista previa */}
       <div className="bg-white rounded-xl shadow p-4">
         {info.pdfUrl ? (
-          <div className="border rounded-lg p-8 text-center">
-            <div className="flex flex-col items-center gap-6">
-              <div className="bg-green-100 p-6 rounded-full">
-                <FileText size={64} className="text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Material del Curso</h3>
-                <p className="text-gray-600 mb-6">El PDF está listo para visualizarse</p>
-              </div>
-              <a
-                href={info.pdfUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
-              >
-                <FileText size={20} />
-                Ver PDF del Curso
-              </a>
-              <p className="text-sm text-gray-500">El PDF se abrirá en una nueva pestaña</p>
-            </div>
+          <div className="border rounded-lg overflow-hidden">
+            <iframe
+              key={info.pdfUrl}
+              title="Material del curso"
+              src={info.pdfUrl}
+              className="w-full"
+              style={{ height: "75vh", border: "none" }}
+            />
           </div>
         ) : (
           <div className="rounded-2xl border p-10 text-center bg-white text-gray-600">

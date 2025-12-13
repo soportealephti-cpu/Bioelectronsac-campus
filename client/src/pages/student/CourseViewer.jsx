@@ -104,28 +104,55 @@ export default function CourseViewer() {
         </div>
       </div>
 
-      {/* Visor PDF - Abre en nueva pestaña como en admin */}
+      {/* Visor PDF con vista previa optimizado para todos los dispositivos */}
       <div className="flex-1 p-4 sm:p-6">
         {info.pdfUrl ? (
-          <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-8 sm:p-12">
-            <div className="flex flex-col items-center gap-6 max-w-md mx-auto">
-              <div className="bg-green-100 p-6 rounded-full">
-                <FileText size={64} className="text-green-600" />
-              </div>
-              <div className="text-center">
-                <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-2">Material del Curso</h3>
-                <p className="text-gray-600 mb-6">El PDF está listo para visualizarse</p>
-              </div>
-              <a
-                href={info.pdfUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium w-full sm:w-auto justify-center"
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-lg overflow-hidden h-full">
+            {/* Toolbar del PDF para móviles */}
+            <div className="bg-gray-100 px-4 py-2 border-b flex items-center justify-between sm:hidden">
+              <span className="text-sm font-medium text-gray-700">Material del Curso</span>
+              <button
+                onClick={() => window.open(info.pdfUrl, '_blank')}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
-                <FileText size={20} />
-                Ver PDF del Curso
-              </a>
-              <p className="text-sm text-gray-500 text-center">El PDF se abrirá en una nueva pestaña</p>
+                Abrir en pantalla completa
+              </button>
+            </div>
+
+            <div className="relative">
+              {/* PDF viewer con iframe */}
+              <iframe
+                key={info.pdfUrl}
+                title="Material del curso"
+                src={info.pdfUrl}
+                className="w-full border-none rounded-lg"
+                style={{
+                  height: "calc(100vh - 160px)",
+                  minHeight: "400px"
+                }}
+                allow="fullscreen"
+              />
+
+              {/* Controles flotantes para móviles */}
+              <div className="absolute top-3 right-3 sm:hidden">
+                <button
+                  onClick={() => window.open(info.pdfUrl, '_blank')}
+                  className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-xs font-medium text-white shadow-lg transition-colors"
+                >
+                  Pantalla completa
+                </button>
+              </div>
+            </div>
+
+            {/* Botones de control para tablet/desktop */}
+            <div className="hidden sm:flex bg-gray-50 px-4 py-2 border-t items-center justify-between">
+              <span className="text-sm text-gray-600">Material del curso PDF</span>
+              <button
+                onClick={() => window.open(info.pdfUrl, '_blank')}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Abrir en nueva ventana
+              </button>
             </div>
           </div>
         ) : (

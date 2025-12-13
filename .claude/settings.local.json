@@ -35,7 +35,10 @@
       "Bash(npx kill-port:*)",
       "Bash(netstat:*)",
       "Bash(npm run build:*)",
-      "Bash(git cherry-pick:*)"
+      "Bash(git cherry-pick:*)",
+      "Bash(dir:*)",
+      "Bash(tasklist:*)",
+      "Bash(del:*)"
     ],
     "deny": [],
     "ask": []
