@@ -270,10 +270,37 @@ exports.emit = async (req, res) => {
 
     let finalNumber = number;
     if (!finalNumber) {
-      tpl.lastSeq += 1;
-      // Cambiado a 3 dígitos sin prefijo de año
-      finalNumber = `${String(tpl.lastSeq).padStart(3, "0")}`;
-      await tpl.save();
+      // 🔢 SISTEMA DE NUMERACIÓN INCREMENTAL CON VERIFICACIÓN DE DUPLICADOS
+      // Base inicial: 200, si ya existe, busca el siguiente número disponible
+      let numeroBase = Math.max(200, tpl.lastSeq); // Empezar desde 200 como mínimo
+      let numeroDisponible = numeroBase;
+      let intentos = 0;
+      const maxIntentos = 1000; // Seguridad para evitar loops infinitos
+
+      // Buscar el siguiente número disponible
+      while (intentos < maxIntentos) {
+        const numeroFormateado = String(numeroDisponible).padStart(3, "0");
+
+        // Verificar si ya existe un certificado con este número
+        const certExistente = await Certificate.findOne({ number: numeroFormateado });
+
+        if (!certExistente) {
+          // Número disponible encontrado
+          finalNumber = numeroFormateado;
+          tpl.lastSeq = numeroDisponible;
+          await tpl.save();
+          console.log(`✅ Número de certificado asignado: ${finalNumber}`);
+          break;
+        }
+
+        // Si existe, probar con el siguiente
+        numeroDisponible++;
+        intentos++;
+      }
+
+      if (intentos >= maxIntentos) {
+        throw new Error("No se pudo generar un número de certificado único");
+      }
     }
 
     // detectar nombres en el esquema de Certificate
@@ -486,7 +513,7 @@ exports.renderPdf = async (req, res) => {
     }
 
     // 🎯 AQUÍ PUEDES MODIFICAR TODAS LAS POSICIONES, TAMAÑOS Y ESPACIADO
-    let y = height - 170; // ⬅️ Posición inicial desde arriba (más alto = más arriba)
+    let y = height - 180; // ⬅️ Posición inicial desde arriba (AUMENTADO 10px de distancia del top: de 170 a 180)
 
     // CERTIFICADO N° - PUEDES CAMBIAR EL TAMAÑO AQUÍ
     if (numero) {
@@ -523,32 +550,33 @@ exports.renderPdf = async (req, res) => {
 
     // 📅 FECHA - PUEDES CAMBIAR POSICIÓN Y TAMAÑO AQUÍ
     const dateFont = fontArchTH || fontRegular;
+    const fechaWidth = dateFont.widthOfTextAtSize(fechaTxt, 12);
     page.drawText(fechaTxt, {
-      x: 40,   // ⬅️ Posición horizontal (más grande = más a la derecha)
+      x: width - fechaWidth - 55,   // ⬅️ Posicionada a la derecha con 15px más de margen (de 40px a 55px desde el borde)
       y: 60,   // ⬅️ SUBIDA de 40 a 60 (más arriba)
       size: 12, // ⬅️ Tamaño de la fuente
       font: dateFont,
       color: rgb(0, 0, 0) // ⬅️ Color negro para mejor visibilidad
     });
 
-    // ✍️ FIRMA Y NOMBRES - PUEDES CAMBIAR POSICIÓN Y TAMAÑOS AQUÍ
+    // ✍️ FIRMA Y NOMBRES - CENTRADOS BAJO EL TEXTO
     if (firmaUrl) {
       try {
         const fBytes = await fetchImageBytes(firmaUrl);
         const isPng = firmaUrl.toLowerCase().endsWith(".png");
         const fImg = isPng ? await pdfDoc.embedPng(fBytes) : await pdfDoc.embedJpg(fBytes);
 
-        // 📏 TAMAÑO Y POSICIÓN DE LA FIRMA
+        // 📏 TAMAÑO Y POSICIÓN DE LA FIRMA (CENTRADA)
         const fw = 200; // ⬅️ Ancho de la firma
         const scale = fw / fImg.width;
         const fh = fImg.height * scale;
-        const fx = width - fw - 80; // ⬅️ Posición horizontal
+        const fx = (width - fw) / 2; // ⬅️ CENTRADA HORIZONTALMENTE
         const fy = 105; // ⬅️ Posición vertical (SUBIDO de 80 a 105 - más arriba)
 
         page.drawImage(fImg, { x: fx, y: fy, width: fw, height: fh });
-        page.drawLine({ start: { x: fx, y: 97 }, end: { x: fx + fw, y: 97 }, thickness: 1, color: rgb(0.1,0.1,0.1) }); // Línea también subida
+        page.drawLine({ start: { x: fx, y: 97 }, end: { x: fx + fw, y: 97 }, thickness: 1, color: rgb(0.1,0.1,0.1) }); // Línea también centrada
 
-        // 👤 NOMBRE DEL GERENTE - PUEDES CAMBIAR EL TAMAÑO AQUÍ
+        // 👤 NOMBRE DEL GERENTE - CENTRADO
         const gw = fontRegular.widthOfTextAtSize(gerente, 12);
         page.drawText(gerente, {
           x: fx + (fw - gw) / 2,
@@ -557,7 +585,7 @@ exports.renderPdf = async (req, res) => {
           font: fontRegular
         });
 
-        // 💼 CARGO "Gerente General" - PUEDES CAMBIAR EL TAMAÑO AQUÍ
+        // 💼 CARGO "Gerente General" - CENTRADO
         const cargo = "Gerente General";
         const cw = fontRegular.widthOfTextAtSize(cargo, 10);
         page.drawText(cargo, {
