@@ -107,12 +107,37 @@ exports.updateAssignmentStatus = async (req, res) => {
 
       const now = new Date();
       const year = now.getFullYear();
-      ensureTemplateYear(tpl, year);
+      // ⚠️ Ya no usar ensureTemplateYear porque resetea lastSeq
+      tpl.year = year;
 
-      tpl.lastSeq += 1;
-      const yy = String(tpl.year).slice(-2);     // p.ej. 2025 -> "25"
-      const number = `${yy}${String(tpl.lastSeq).padStart(4, "0")}`; // ej: 250001
-      await tpl.save();
+      // 🔢 USAR SISTEMA DE NUMERACIÓN INCREMENTAL (igual que certificateController)
+      let numeroDisponible = tpl.lastSeq < 200 ? 200 : tpl.lastSeq + 1;
+      let intentos = 0;
+      const maxIntentos = 1000;
+      let number;
+
+      console.log(`🔍 [summary] Buscando número disponible desde: ${numeroDisponible}`);
+
+      while (intentos < maxIntentos) {
+        const numeroFormateado = String(numeroDisponible).padStart(3, "0");
+        const certExistente = await Certificate.findOne({ number: numeroFormateado });
+
+        if (!certExistente) {
+          number = numeroFormateado;
+          tpl.lastSeq = numeroDisponible;
+          await tpl.save();
+          console.log(`✅ [summary] Número de certificado asignado: ${number}`);
+          break;
+        }
+
+        console.log(`⚠️  [summary] Número ${numeroFormateado} ya existe, probando siguiente...`);
+        numeroDisponible++;
+        intentos++;
+      }
+
+      if (intentos >= maxIntentos) {
+        throw new Error("No se pudo generar número único después de 1000 intentos");
+      }
 
       const studentName = [asg.user?.nombre, asg.user?.apellido].filter(Boolean).join(" ") || "-";
       const courseTitle = asg.course?.titulo || "-";

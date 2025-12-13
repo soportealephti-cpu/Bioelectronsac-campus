@@ -272,10 +272,14 @@ exports.emit = async (req, res) => {
     if (!finalNumber) {
       // 🔢 SISTEMA DE NUMERACIÓN INCREMENTAL CON VERIFICACIÓN DE DUPLICADOS
       // Base inicial: 200, si ya existe, busca el siguiente número disponible
-      let numeroBase = Math.max(200, tpl.lastSeq); // Empezar desde 200 como mínimo
-      let numeroDisponible = numeroBase;
+
+      // Si lastSeq es menor a 200, empezar desde 200
+      // Si lastSeq es 200 o más, empezar desde lastSeq + 1
+      let numeroDisponible = tpl.lastSeq < 200 ? 200 : tpl.lastSeq + 1;
       let intentos = 0;
       const maxIntentos = 1000; // Seguridad para evitar loops infinitos
+
+      console.log(`🔍 Buscando número disponible desde: ${numeroDisponible}`);
 
       // Buscar el siguiente número disponible
       while (intentos < maxIntentos) {
@@ -289,9 +293,11 @@ exports.emit = async (req, res) => {
           finalNumber = numeroFormateado;
           tpl.lastSeq = numeroDisponible;
           await tpl.save();
-          console.log(`✅ Número de certificado asignado: ${finalNumber}`);
+          console.log(`✅ Número de certificado asignado: ${finalNumber} (lastSeq actualizado a ${numeroDisponible})`);
           break;
         }
+
+        console.log(`⚠️  Número ${numeroFormateado} ya existe, probando con el siguiente...`);
 
         // Si existe, probar con el siguiente
         numeroDisponible++;
@@ -299,7 +305,7 @@ exports.emit = async (req, res) => {
       }
 
       if (intentos >= maxIntentos) {
-        throw new Error("No se pudo generar un número de certificado único");
+        throw new Error("No se pudo generar un número de certificado único después de 1000 intentos");
       }
     }
 
@@ -706,12 +712,38 @@ exports.ensureForAssignment = async (req, res) => {
     const year = now.getFullYear();
     if (tpl.year !== year) {
       tpl.year = year;
-      tpl.lastSeq = 0;
+      // ⚠️ NO resetear lastSeq cuando cambia el año
+      // La numeración es continua independiente del año
     }
-    tpl.lastSeq += 1;
-    await tpl.save();
-    // Cambiado a 3 dígitos sin prefijo de año
-    const number = `${String(tpl.lastSeq).padStart(3, "0")}`;
+
+    // 🔢 USAR LA MISMA LÓGICA DE NUMERACIÓN INCREMENTAL
+    let numeroDisponible = tpl.lastSeq < 200 ? 200 : tpl.lastSeq + 1;
+    let intentos = 0;
+    const maxIntentos = 1000;
+    let number;
+
+    console.log(`🔍 [ensureCertificate] Buscando número desde: ${numeroDisponible}`);
+
+    while (intentos < maxIntentos) {
+      const numeroFormateado = String(numeroDisponible).padStart(3, "0");
+      const certExistente = await Certificate.findOne({ number: numeroFormateado });
+
+      if (!certExistente) {
+        number = numeroFormateado;
+        tpl.lastSeq = numeroDisponible;
+        await tpl.save();
+        console.log(`✅ [ensureCertificate] Número asignado: ${number}`);
+        break;
+      }
+
+      console.log(`⚠️  [ensureCertificate] Número ${numeroFormateado} existe, probando siguiente...`);
+      numeroDisponible++;
+      intentos++;
+    }
+
+    if (intentos >= maxIntentos) {
+      throw new Error("No se pudo generar número único después de 1000 intentos");
+    }
 
     // 5) Respetar cómo está definido tu esquema de Certificate
     const hasUser     = Boolean(Certificate.schema.paths["user"]);
