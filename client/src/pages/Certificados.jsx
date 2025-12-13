@@ -41,7 +41,6 @@ export default function Certificados() {
   const [form, setForm] = useState({
     userId: "",
     courseId: "",
-    number: "",
     emitDate: new Date().toISOString().substring(0, 10),
     gerenteNombre: "",
     backgroundFile: null,
@@ -85,22 +84,8 @@ export default function Certificados() {
     loadAll();
   }, []);
 
-  // Autollenar correlativo (string) cuando cambia el año de la fecha
-  useEffect(() => {
-    const y = form.emitDate
-      ? new Date(form.emitDate).getFullYear()
-      : new Date().getFullYear();
-
-    (async () => {
-      try {
-        const n = await getNextCertificateNumber(y); // ✅ devuelve string
-        if (n) setForm((s) => ({ ...s, number: n }));
-      } catch (err) {
-        console.error("getNextCertificateNumber failed:", err?.response?.data || err.message);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.emitDate]);
+  // ⛔ ELIMINADO: Ya no se autocompleta el número desde el frontend
+  // El backend generará el número automáticamente al emitir
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -120,17 +105,13 @@ export default function Certificados() {
 
   const saveTemplate = async () => {
     try {
-      // 👇 Si se modifica el número, actualizar lastSeq = número - 1
-      const lastSeqUpdate = form.number ? Number(form.number) - 1 : undefined;
-
       await updateCertificateTemplate({
         gerenteNombre: form.gerenteNombre,
-        lastSeq: lastSeqUpdate,
         backgroundFile: form.backgroundFile || undefined,
         firmaFile: form.firmaFile || undefined,
       });
       await loadAll();
-      showToast("success", "Plantilla actualizada. El próximo certificado será: " + (form.number || "auto"));
+      showToast("success", "Plantilla actualizada correctamente");
     } catch (e) {
       console.error(e?.response?.data || e.message);
       showToast("error", "No se pudo actualizar la plantilla");
@@ -146,13 +127,14 @@ export default function Certificados() {
       await emitCertificate({
         userId: form.userId,
         courseId: form.courseId,
-        number: form.number || undefined, // si lo dejas vacío, backend genera
+        // ⛔ NO enviar número - el backend lo genera automáticamente
         emitDate: form.emitDate,
       });
-      showToast("success", "Certificado emitido");
+      showToast("success", "Certificado emitido correctamente");
     } catch (e) {
       console.error(e?.response?.data || e.message);
-      showToast("error", "No se pudo emitir el certificado");
+      const errorMsg = e?.response?.data?.mensaje || e?.response?.data?.detalle || "No se pudo emitir el certificado";
+      showToast("error", errorMsg);
     }
   };
 
@@ -181,7 +163,7 @@ export default function Certificados() {
   const openPreviewTab = () => {
     const bg = preview.backgroundUrl || tpl?.backgroundUrl || "";
     const firma = preview.firmaUrl || tpl?.firmaUrl || "";
-    const bigNumber = form.number || "";
+    const bigNumber = "XXX"; // Placeholder ya que el número se asigna al emitir
 
     const html = `
 <!doctype html>
@@ -303,34 +285,18 @@ export default function Certificados() {
               </select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs sm:text-sm mb-1 font-medium">
-                  Número del Próximo Certificado
-                </label>
-                <input
-                  name="number"
-                  type="number"
-                  min="1"
-                  value={form.number}
-                  onChange={onChange}
-                  className="w-full border rounded px-3 py-2 text-sm"
-                  placeholder="Ej: 150"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  💡 Modifica este número y presiona "Guardar plantilla" para cambiar la secuencia
-                </p>
-              </div>
-              <div>
-                <label className="block text-xs sm:text-sm mb-1 font-medium">Fecha de emisión</label>
-                <input
-                  type="date"
-                  name="emitDate"
-                  value={form.emitDate}
-                  onChange={onChange}
-                  className="w-full border rounded px-3 py-2 text-sm"
-                />
-              </div>
+            <div>
+              <label className="block text-xs sm:text-sm mb-1 font-medium">Fecha de emisión</label>
+              <input
+                type="date"
+                name="emitDate"
+                value={form.emitDate}
+                onChange={onChange}
+                className="w-full border rounded px-3 py-2 text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                💡 El número del certificado se asigna automáticamente de forma incremental
+              </p>
             </div>
 
             <div>
@@ -420,7 +386,7 @@ export default function Certificados() {
               {/* bloque superior - 👇 TAMAÑOS DE FUENTE AUMENTADOS */}
               <div className="w-full text-center mt-[5%] sm:mt-[7%]">
                 <div className="text-lg sm:text-2xl font-extrabold leading-none mb-1">
-                  CERTIFICADO N°{form.number || ""}
+                  CERTIFICADO N° XXX
                 </div>
                 <div className="font-bold text-xs sm:text-sm">BIO-{anioActual}</div>
                 <div className="mt-1 text-xs sm:text-[15px]">Certificado de aprobación para:</div>
