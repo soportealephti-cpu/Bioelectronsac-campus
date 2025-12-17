@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, GraduationCap, Shield, Clock, Award, Copyright } from "lucide-react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
+import logoLogin from "../assets/LOGOLOGIN.png";
 
 export default function Login() {
   const [formData, setFormData] = useState({ correo: "", contraseña: "" });
@@ -50,24 +51,22 @@ export default function Login() {
       {/* Diseño Móvil/Tablet */}
       <div className="lg:hidden min-h-screen bg-gradient-to-br from-slate-900 via-green-900 to-blue-900 flex flex-col">
         {/* Header con logo para móviles */}
-        <div className="flex-shrink-0 p-4 sm:p-6">
-          <div className="flex items-center justify-center gap-3">
-            <div className="h-10 w-10 bg-gradient-to-br from-green-600 to-blue-600 rounded-xl flex items-center justify-center">
-              <GraduationCap size={24} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">Bioelectron</h1>
-              <p className="text-xs text-green-200">Academy</p>
-            </div>
-          </div>
-        </div>
+        
 
         {/* Contenido principal móvil */}
         <div className="flex-1 flex items-center justify-center px-4 sm:px-6">
           <div className="w-full max-w-md mx-auto">
+            {/* Logo encima del formulario */}
+            <div className="flex justify-center mb-2 sm:mb-3">
+              <img
+                src={logoLogin}
+                alt="Bioelectron Logo"
+                className="w-48 sm:w-56 h-auto object-contain drop-shadow-2xl"
+              />
+            </div>
+
             {/* Formulario móvil */}
             <div className="bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-xl border border-white/20">
-              
               {/* Header del formulario */}
               <div className="text-center mb-6 sm:mb-8">
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">¡Bienvenido!</h2>
@@ -200,8 +199,18 @@ export default function Login() {
         }}
       >
         <div className="flex-1 flex items-center justify-center">
-          <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Bienvenido</h2>
+          <div className="max-w-md w-full">
+            {/* Logo encima del formulario */}
+            <div className="flex justify-center mb-8">
+              <img
+                src={logoLogin}
+                alt="Bioelectron Logo"
+                className="w-48 h-auto object-contain drop-shadow-2xl"
+              />
+            </div>
+
+            <div className="bg-white p-8 rounded-2xl shadow-xl text-center">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Bienvenido</h2>
             <p className="text-sm text-gray-500 mb-6">
               Ingresa a tu cuenta para acceder a los cursos
             </p>
@@ -250,6 +259,7 @@ export default function Login() {
               <div className="flex items-center gap-1">🔒 Acceso Seguro</div>
               <div className="flex items-center gap-1">🎓 Cursos Certificados</div>
               <div className="flex items-center gap-1">⏱️ 24/7 Disponible</div>
+            </div>
             </div>
           </div>
         </div>

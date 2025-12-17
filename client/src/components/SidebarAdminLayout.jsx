@@ -14,6 +14,7 @@ import {
   Home
 } from "lucide-react";
 import Footer from "./Footer";
+import logoCircular from "../assets/LOGOCIRCULAR.png";
 
 export default function SidebarAdminLayout() {
   const navigate = useNavigate();
@@ -68,8 +69,8 @@ export default function SidebarAdminLayout() {
 
         {/* Header móvil */}
         <div className="flex flex-col items-center justify-center text-center p-4 mb-4">
-          <div className="bg-white rounded-full shadow-lg mb-3 p-3">
-            <GraduationCap size={48} className="text-blue-900" />
+          <div className="bg-white rounded-full shadow-lg mb-3 p-1 w-24 h-24 flex items-center justify-center">
+            <img src={logoCircular} alt="Bioelectron Logo" className="w-full h-full object-contain" />
           </div>
           <div className="text-center">
             <h1 className="text-sm font-semibold text-white leading-tight mb-1">
@@ -118,13 +119,15 @@ export default function SidebarAdminLayout() {
 
         {/* Header desktop */}
         <div className="flex flex-col items-center justify-center text-center p-4 lg:p-6 mb-4">
-          <div className="bg-white rounded-full shadow-lg mb-3 p-3 lg:p-4">
-            <button 
+          <div className={`bg-white rounded-full shadow-lg mb-3 p-1 flex items-center justify-center ${
+            isDesktopCollapsed ? "w-15 h-15" : "w-24 h-24"
+          }`}>
+            <button
               onClick={() => setIsDesktopCollapsed(!isDesktopCollapsed)}
-              className="transition-all hover:scale-105 text-blue-900 hover:text-blue-700"
+              className="transition-all hover:scale-105 w-full h-full"
               title={isDesktopCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
             >
-              <GraduationCap size={isDesktopCollapsed ? 32 : 48} />
+              <img src={logoCircular} alt="Bioelectron Logo" className="w-full h-full object-contain" />
             </button>
           </div>
           {!isDesktopCollapsed && (
@@ -209,11 +212,11 @@ export default function SidebarAdminLayout() {
       </div>
 
       {/* Contenido */}
-      <div className={`flex-1 overflow-x-hidden transition-all duration-300 flex flex-col ${
+      <div className={`flex-1 overflow-x-hidden transition-all mt-6 duration-300 flex flex-col ${
         isDesktopCollapsed ? "lg:ml-12" : "lg:ml-30"
       }`}>
         {/* Espacio para top bar móvil */}
-        <div className="h-16 lg:hidden" />
+        <div className="h-16 mt-12 lg:hidden" />
 
         <div className="flex-1 px-4 sm:px-6 lg:px-6 pt-30 pb-4 sm:pb-6 lg:pb-6 max-w-full">
           <Outlet />
