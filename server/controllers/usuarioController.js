@@ -28,7 +28,7 @@ const crearUsuario = async (req, res) => {
     }
 
     // ✅ Verificar si el correo ya existe
-    const correoCompleto = `${correo}@bioelectronsac.com`;
+    const correoCompleto = `${correo}@bioelectronsac.com`.normalize('NFC');
     const usuarioExistenteCorreo = await Usuario.findOne({ correo: correoCompleto });
     if (usuarioExistenteCorreo) {
       return res.status(400).json({ 
@@ -43,9 +43,9 @@ const crearUsuario = async (req, res) => {
 
     const nuevoUsuario = new Usuario({
       dni,
-      apellido: (apellido || "").toLowerCase(),
-      nombre: nombre.toLowerCase(),
-      correo: correoCompleto,
+      apellido: (apellido || "").toLowerCase().normalize('NFC'),
+      nombre: nombre.toLowerCase().normalize('NFC'),
+      correo: correoCompleto, // Ya está normalizado en línea 31
       celular: telefono || "",
       password: hashedPassword, // Guardar la contraseña hasheada
       rol: "user",
@@ -77,4 +77,67 @@ const crearUsuario = async (req, res) => {
   }
 };
 
-module.exports = { obtenerUsuarios, crearUsuario };
+// PUT /api/usuarios/:id
+const actualizarUsuario = async (req, res) => {
+  try {
+    const { nombre, apellido, dni, correo, correoPersonal, telefono } = req.body;
+
+    // Objeto con los campos permitidos para actualizar (SIN password)
+    const camposActualizables = {
+      nombre: nombre?.toLowerCase().normalize('NFC'),
+      apellido: (apellido || "").toLowerCase().normalize('NFC'),
+      dni,
+      correoPersonal: correoPersonal || "",
+      celular: telefono || ""
+    };
+
+    // Si se envía correo, construir el correo completo
+    if (correo) {
+      // Si viene solo la base (sin @), agregar el dominio
+      const correoCompleto = correo.includes('@')
+        ? correo
+        : `${correo}@bioelectronsac.com`;
+      camposActualizables.correo = correoCompleto.normalize('NFC');
+    }
+
+    // Actualizar usuario SIN tocar el password
+    const usuarioActualizado = await Usuario.findByIdAndUpdate(
+      req.params.id,
+      camposActualizables,
+      { new: true, runValidators: true }
+    );
+
+    if (!usuarioActualizado) {
+      return res.status(404).json({ mensaje: "Usuario no encontrado" });
+    }
+
+    res.json({
+      mensaje: "Usuario actualizado correctamente",
+      usuario: usuarioActualizado
+    });
+  } catch (error) {
+    console.error("❌ actualizarUsuario ERROR:", error);
+
+    // Manejar errores de duplicación
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      const value = error.keyValue[field];
+      if (field === 'dni') {
+        return res.status(400).json({
+          mensaje: "Este DNI ya está en uso",
+          detalle: `Ya existe otro usuario con el DNI: ${value}`
+        });
+      }
+      if (field === 'correo') {
+        return res.status(400).json({
+          mensaje: "Este correo ya está en uso",
+          detalle: `Ya existe otro usuario con el correo: ${value}`
+        });
+      }
+    }
+
+    res.status(500).json({ mensaje: "Error al actualizar usuario", error: error.message });
+  }
+};
+
+module.exports = { obtenerUsuarios, crearUsuario, actualizarUsuario };

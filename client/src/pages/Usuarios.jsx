@@ -58,11 +58,11 @@ export default function Usuarios() {
   };
 
   const generarCorreoUnico = (nombre, apellido) => {
-    const nombreCompleto = `${nombre.trim().toLowerCase()} ${apellido.trim().toLowerCase()}`;
-    const primerApellido = apellido.split(' ')[0].toLowerCase();
-    
+    const nombreCompleto = `${nombre.trim().toLowerCase().normalize('NFC')} ${apellido.trim().toLowerCase().normalize('NFC')}`;
+    const primerApellido = apellido.split(' ')[0].toLowerCase().normalize('NFC');
+
     // Generar correo con 1 letra
-    const primeraLetraNombre = nombre.charAt(0).toLowerCase();
+    const primeraLetraNombre = nombre.charAt(0).toLowerCase().normalize('NFC');
     const correoBase1 = primeraLetraNombre + primerApellido;
     
     // Verificar si ya existe alguien con este correo
@@ -78,7 +78,7 @@ export default function Usuarios() {
         return null; // No permitir registro de persona duplicada
       } else {
         // Diferentes personas, probar con 2 letras
-        const dosLetrasNombre = nombre.substring(0, 2).toLowerCase();
+        const dosLetrasNombre = nombre.substring(0, 2).toLowerCase().normalize('NFC');
         const correoBase2 = dosLetrasNombre + primerApellido;
         
         // Verificar si el correo con 2 letras también existe
@@ -160,9 +160,9 @@ export default function Usuarios() {
 
     // Validación adicional para creación: verificar si la persona ya existe
     if (!editId) {
-      const nombreCompleto = `${form.nombre.trim().toLowerCase()} ${form.apellido.trim().toLowerCase()}`;
-      const personaExistente = usuarios.find(u => 
-        `${u.nombre.toLowerCase()} ${u.apellido.toLowerCase()}` === nombreCompleto
+      const nombreCompleto = `${form.nombre.trim().toLowerCase().normalize('NFC')} ${form.apellido.trim().toLowerCase().normalize('NFC')}`;
+      const personaExistente = usuarios.find(u =>
+        `${u.nombre.toLowerCase().normalize('NFC')} ${u.apellido.toLowerCase().normalize('NFC')}` === nombreCompleto
       );
       
       if (personaExistente) {
@@ -177,15 +177,19 @@ export default function Usuarios() {
       nombre: form.nombre,
       correo: form.correoBase, // backend agrega @bioelectronsac.com al crear; en editar enviamos base y que backend lo maneje si así lo definiste
       correoPersonal: form.correoPersonal,
-      telefono: form.telefono,
-      password: form.dni // Contraseña será el DNI
+      telefono: form.telefono
     };
+
+    // Solo agregar password al CREAR usuario (no al editar)
+    if (!editId) {
+      payload.password = form.dni; // Contraseña será el DNI
+    }
 
     try {
       setLoading(true);
 
       if (editId) {
-        // EDITAR
+        // EDITAR - El backend NO modificará la contraseña
         await updateUser(editId, payload);
         showToast("success", "Usuario actualizado");
       } else {
@@ -226,12 +230,12 @@ export default function Usuarios() {
   const usuariosFiltrados = useMemo(() => {
     if (!searchTerm.trim()) return usuarios;
 
-    const term = searchTerm.toLowerCase().trim();
+    const term = searchTerm.toLowerCase().normalize('NFC').trim();
     return usuarios.filter(u => {
-      const nombreCompleto = `${u.apellido || ''} ${u.nombre || ''}`.toLowerCase();
-      const correo = (u.correo || '').toLowerCase();
-      const dni = (u.dni || '').toLowerCase();
-      const telefono = (u.celular || u.telefono || '').toLowerCase();
+      const nombreCompleto = `${u.apellido || ''} ${u.nombre || ''}`.toLowerCase().normalize('NFC');
+      const correo = (u.correo || '').toLowerCase().normalize('NFC');
+      const dni = (u.dni || '').toLowerCase().normalize('NFC');
+      const telefono = (u.celular || u.telefono || '').toLowerCase().normalize('NFC');
 
       return nombreCompleto.includes(term) ||
              correo.includes(term) ||

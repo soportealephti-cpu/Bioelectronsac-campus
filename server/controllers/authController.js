@@ -7,8 +7,11 @@ const login = async (req, res) => {
   const { correo, password } = req.body;
 
   try {
+    // Normalizar el correo antes de buscar para asegurar consistencia con caracteres especiales (ñ, á, etc.)
+    const correoNormalizado = correo.normalize('NFC');
+
     // Verificar si el usuario existe
-    const user = await User.findOne({ correo });
+    const user = await User.findOne({ correo: correoNormalizado });
     if (!user) {
       return res.status(401).json({ message: "Credenciales inválidas" });
     }

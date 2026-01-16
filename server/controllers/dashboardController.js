@@ -183,14 +183,16 @@ const importFromExcel = async (req, res) => {
       for (const userData of usersData) {
         try {
           if (!userData['Correo'] || !userData['Nombre']) continue;
-          
-          const existingUser = await User.findOne({ correo: userData['Correo'] });
-          
+
+          // Normalizar correo para búsqueda y guardado consistente
+          const correoNormalizado = userData['Correo'].normalize('NFC');
+          const existingUser = await User.findOne({ correo: correoNormalizado });
+
           const userObj = {
-            nombre: userData['Nombre'] || '',
-            apellido: userData['Apellido'] || '',
+            nombre: (userData['Nombre'] || '').toLowerCase().normalize('NFC'),
+            apellido: (userData['Apellido'] || '').toLowerCase().normalize('NFC'),
             dni: userData['DNI'] || '',
-            correo: userData['Correo'],
+            correo: correoNormalizado,
             celular: userData['Celular'] || '',
             rol: userData['Rol'] || 'user'
           };
@@ -251,8 +253,10 @@ const importFromExcel = async (req, res) => {
       for (const assignmentData of assignmentsData) {
         try {
           if (!assignmentData['Correo Usuario'] || !assignmentData['Curso']) continue;
-          
-          const user = await User.findOne({ correo: assignmentData['Correo Usuario'] });
+
+          // Normalizar correo para búsqueda consistente
+          const correoNormalizado = assignmentData['Correo Usuario'].normalize('NFC');
+          const user = await User.findOne({ correo: correoNormalizado });
           const course = await Course.findOne({ titulo: assignmentData['Curso'] });
           
           if (!user || !course) continue;

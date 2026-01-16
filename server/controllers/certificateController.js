@@ -331,7 +331,7 @@ exports.emit = async (req, res) => {
       emitDate: emitDate ? new Date(emitDate) : new Date(),
       number: finalNumber,
       // Campos requeridos para el Certificate
-      studentName: `${user.nombre || ''} ${user.apellido || ''}`.trim() || 'Estudiante',
+      studentName: `${user.nombre || ''} ${user.apellido || ''}`.trim().normalize('NFC') || 'Estudiante',
       courseTitle: course.titulo || 'Curso',
       hours: horasPorCurso(course.titulo),
       dateText: fechaLarga(emitDate || new Date()),
@@ -387,9 +387,10 @@ exports.getMyCertificates = async (req, res) => {
 exports.renderPdf = async (req, res) => {
   console.log("🔍 renderPdf llamado con ID:", req.params.id);
   try {
+    // ✨ POPULATE: Traer datos ACTUALES del usuario y curso desde la BD
     const cert = await Certificate.findById(req.params.id)
-      .populate("user", "nombre apellido correo")
-      .populate("course", "titulo")
+      .populate("user", "nombre apellido correo dni")
+      .populate("course", "titulo categoria modulo")
       .populate("template");
 
     if (!cert) return res.status(404).send("Certificado no encontrado");
@@ -412,14 +413,19 @@ exports.renderPdf = async (req, res) => {
     const userDoc   = cert.user || cert.userId;
     const courseDoc = cert.course || cert.courseId;
 
-    // 👇 USAR LOS DATOS GUARDADOS EN EL CERTIFICADO (snapshot inmutable)
-    const alumnoNombre = cert.studentName || [userDoc?.nombre, userDoc?.apellido].filter(Boolean).join(" ") || "Nombre del alumno";
-    const cursoTitulo  = cert.courseTitle || courseDoc?.titulo || "Nombre del curso";
-    const horas        = cert.hours || horasPorCurso(cursoTitulo);
+    // ✨ PRIORIZAR DATOS ACTUALES DE LA BD sobre snapshot guardado
+    // Si el usuario fue actualizado, el certificado mostrará los datos más recientes
+    const alumnoNombre =
+      (userDoc?.nombre && userDoc?.apellido)
+        ? `${userDoc.nombre} ${userDoc.apellido}`.trim().normalize('NFC')
+        : (cert.studentName || "Nombre del alumno").normalize('NFC');
+
+    const cursoTitulo  = courseDoc?.titulo || cert.courseTitle || "Nombre del curso";
+    const horas        = courseDoc?.horas || cert.hours || horasPorCurso(cursoTitulo);
     const numero       = cert.number || "";
     const anio         = new Date(cert.emitDate || Date.now()).getFullYear();
     const bioCode      = `BIO-${anio}`;
-    const fechaTxt     = cert.dateText || fechaLarga(cert.emitDate); // 👈 USAR dateText guardado
+    const fechaTxt     = cert.dateText || fechaLarga(cert.emitDate);
     const gerente      = cert.managerName || currentTemplate?.gerenteNombre || "Gerente General";
     const fondoUrl     = currentTemplate?.backgroundUrl || "";
     const firmaUrl     = currentTemplate?.firmaUrl || "";
@@ -428,8 +434,8 @@ exports.renderPdf = async (req, res) => {
     console.log(`   - emitDate (raw): ${cert.emitDate}`);
     console.log(`   - emitDate (type): ${typeof cert.emitDate}`);
     console.log(`   - fechaTxt: ${fechaTxt}`);
-    console.log(`   - alumnoNombre: ${alumnoNombre}`);
-    console.log(`   - cursoTitulo: ${cursoTitulo}`);
+    console.log(`   - alumnoNombre: ${alumnoNombre} ${userDoc?.nombre ? '✅ (datos actualizados de BD)' : '⚠️ (snapshot guardado)'}`);
+    console.log(`   - cursoTitulo: ${cursoTitulo} ${courseDoc?.titulo ? '✅ (datos actualizados de BD)' : '⚠️ (snapshot guardado)'}`);
     console.log(`   - numero: ${numero}`);
     console.log(`   - backgroundUrl: ${fondoUrl}`);
     console.log(`   - firmaUrl: ${firmaUrl}`);
@@ -756,7 +762,7 @@ exports.ensureForAssignment = async (req, res) => {
       emitDate: now,
       number,
       // Campos requeridos para el Certificate
-      studentName: `${user.nombre || ''} ${user.apellido || ''}`.trim() || 'Estudiante',
+      studentName: `${user.nombre || ''} ${user.apellido || ''}`.trim().normalize('NFC') || 'Estudiante',
       courseTitle: course.titulo || 'Curso',
       hours: horasPorCurso(course.titulo),
       dateText: fechaLarga(now),
