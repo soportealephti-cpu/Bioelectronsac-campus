@@ -3,8 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCcw, Check, X, ChevronDown, FileText, Loader2, Search, Users, CheckCircle, Clock } from "lucide-react";
 import Toast from "../components/Toast";
 import { fetchSummary, updateAssignmentStatus } from "../services/summary";
-
-const API = "http://localhost:5000/api";
+import api from "../api";
 
 export default function Resumen() {
   const [raw, setRaw] = useState([]);
@@ -30,13 +29,11 @@ export default function Resumen() {
       setLoading(true);
       const data = await fetchSummary();
       setRaw(Array.isArray(data) ? data : []);
-      // preseleccionar primer módulo (curso principal) por usuario
+      // preseleccionar el primer curso por usuario
       const firstSel = {};
       (Array.isArray(data) ? data : []).forEach((r) => {
         const correo = r?.usuario?.correo || "-";
-        const esModulo = !r?.curso?.modulo || r?.curso?.modulo === "";
-        // Solo preseleccionar si es un módulo
-        if (!firstSel[correo] && esModulo) {
+        if (!firstSel[correo]) {
           firstSel[correo] = r.assignmentId || r._id;
         }
       });
@@ -51,18 +48,13 @@ export default function Resumen() {
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  // Agrupar por usuario y filtrar solo módulos (cursos principales)
+  // Agrupar por usuario (todos los cursos asignados)
   const grouped = useMemo(() => {
     const map = new Map();
     raw.forEach((r) => {
       const correo = r?.usuario?.correo || "-";
-      // Solo incluir si es un módulo (curso principal sin campo modulo o modulo vacío)
-      const esModulo = !r?.curso?.modulo || r?.curso?.modulo === "";
-
-      if (esModulo) {
-        if (!map.has(correo)) map.set(correo, []);
-        map.get(correo).push(r);
-      }
+      if (!map.has(correo)) map.set(correo, []);
+      map.get(correo).push(r);
     });
     return map;
   }, [raw]);
@@ -100,7 +92,7 @@ export default function Resumen() {
     try {
       setPdfOpeningId(cert.id);
       // OJO: tu backend monta /api/certificates
-      window.open(`${API}/certificates/${cert.id}/pdf`, "_blank", "noopener,noreferrer");
+      window.open(`${api.defaults.baseURL}/certificates/${cert.id}/pdf`, "_blank", "noopener,noreferrer");
     } finally {
       // pequeño delay visual para que el spinner se vea
       setTimeout(() => setPdfOpeningId(""), 600);
@@ -253,11 +245,6 @@ export default function Resumen() {
             Mostrando {gruposFiltrados.length} de {gruposArray.length} resultados
           </p>
         )}
-        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-700">
-            <strong>ℹ️ Nota:</strong> Solo se muestran módulos (cursos principales). Los temas y subtemas están agrupados dentro de cada módulo.
-          </p>
-        </div>
       </div>
 
       {/* Vista Desktop - Tarjetas mejoradas */}

@@ -33,7 +33,7 @@ exports.getSummary = async (_req, res) => {
   try {
     const asignaciones = await Assignment.find({})
       .populate({ path: "user", select: "nombre apellido correo" })
-      .populate({ path: "course", select: "titulo" })
+      .populate({ path: "course", select: "titulo modulo" })
       .sort({ createdAt: -1 });
 
     // Traer exámenes mapeados por courseId (si usas 1 examen por curso)
@@ -57,7 +57,8 @@ exports.getSummary = async (_req, res) => {
 
         curso: {
             titulo: a.course?.titulo || "-",
-            materialUrl: a.course?.materialUrl || a.course?.pdfUrl || ""  // <-- añade esto
+            modulo: a.course?.modulo || "",
+            materialUrl: a.course?.materialUrl || a.course?.pdfUrl || ""
           },
 
           examen: ex ? { titulo: ex.titulo } : null,
@@ -68,6 +69,7 @@ exports.getSummary = async (_req, res) => {
           certificado: cert
             ? { id: String(cert._id), number: cert.number, emitDate: cert.emitDate }
             : null,
+          expiresAt: a.expiresAt || null,
         };
       })
     );

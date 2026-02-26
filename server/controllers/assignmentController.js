@@ -84,12 +84,38 @@ exports.getById = async (req, res) => {
   }
 };
 
+exports.extendAssignment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { days = 30 } = req.body;
+
+    const assignment = await Assignment.findById(id);
+    if (!assignment) return res.status(404).json({ mensaje: "Asignación no encontrada" });
+
+    // Si ya venció: extender desde hoy. Si aún vigente: sumar días a la fecha actual de vencimiento
+    const base = !assignment.expiresAt || assignment.expiresAt < new Date()
+      ? new Date()
+      : assignment.expiresAt;
+
+    assignment.expiresAt = addDays(base, Number(days));
+    await assignment.save();
+
+    res.json({ mensaje: "Acceso extendido correctamente", expiresAt: assignment.expiresAt });
+  } catch (error) {
+    console.error("❌ extendAssignment:", error);
+    res.status(500).json({ mensaje: "Error al extender acceso", error: error.message });
+  }
+};
+
 exports.getMyCourses = async (req, res) => {
   try {
     const userId = req.user.id; // ID del usuario autenticado
+    const now = new Date();
 
-    const assignments = await Assignment.find({ user: userId })
-      .populate("course", "titulo categoria pdfUrl imagenUrl"); // Popular el curso
+    const assignments = await Assignment.find({
+      user: userId,
+      $or: [{ expiresAt: { $gt: now } }, { expiresAt: null }]
+    }).populate("course", "titulo categoria pdfUrl imagenUrl"); // Popular el curso
 
     res.json(assignments);
   } catch (error) {

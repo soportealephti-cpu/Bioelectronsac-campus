@@ -56,3 +56,8 @@ export const deleteCourse = async (id) => {
   const { data } = await api.delete(`${API_URL}/${id}`);
   return data;
 };
+
+export const listModules = async () => {
+  const { data } = await api.get(`${API_URL}/modulos`);
+  return data;
+};

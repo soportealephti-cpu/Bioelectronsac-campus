@@ -6,6 +6,10 @@ import Toast from "../components/Toast";
 const DOMAIN = "@bioelectronsac.com";
 const USUARIOS_POR_PAGINA = 10;
 
+// Convierte texto a formato válido para correo (sin tildes, ñ→n, solo a-z0-9)
+const normalizarParaCorreo = (str) =>
+  str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+
 export default function Usuarios() {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null); // null = crear, id = editar
@@ -59,10 +63,10 @@ export default function Usuarios() {
 
   const generarCorreoUnico = (nombre, apellido) => {
     const nombreCompleto = `${nombre.trim().toLowerCase().normalize('NFC')} ${apellido.trim().toLowerCase().normalize('NFC')}`;
-    const primerApellido = apellido.split(' ')[0].toLowerCase().normalize('NFC');
+    const primerApellido = normalizarParaCorreo(apellido.split(' ')[0].toLowerCase());
 
     // Generar correo con 1 letra
-    const primeraLetraNombre = nombre.charAt(0).toLowerCase().normalize('NFC');
+    const primeraLetraNombre = normalizarParaCorreo(nombre.charAt(0).toLowerCase());
     const correoBase1 = primeraLetraNombre + primerApellido;
     
     // Verificar si ya existe alguien con este correo
@@ -78,7 +82,7 @@ export default function Usuarios() {
         return null; // No permitir registro de persona duplicada
       } else {
         // Diferentes personas, probar con 2 letras
-        const dosLetrasNombre = nombre.substring(0, 2).toLowerCase().normalize('NFC');
+        const dosLetrasNombre = normalizarParaCorreo(nombre.substring(0, 2).toLowerCase());
         const correoBase2 = dosLetrasNombre + primerApellido;
         
         // Verificar si el correo con 2 letras también existe

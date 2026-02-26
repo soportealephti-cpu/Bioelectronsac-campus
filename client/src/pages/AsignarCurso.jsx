@@ -1,19 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
-import { UserPlus, BookOpen, CheckCircle2, Trash2, Clock, ShieldCheck } from "lucide-react";
+import { UserPlus, BookOpen, CheckCircle2, Trash2, Clock, ShieldCheck, PlusCircle, Layers } from "lucide-react";
 import Toast from "../components/Toast";
 import { listUsers } from "../services/users";
-import { listCourses } from "../services/courses";
-import { listAssignmentsByUser, createAssignment, deleteAssignment } from "../services/assignments";
+import { listCourses, listModules } from "../services/courses";
+import { listAssignmentsByUser, createAssignment, assignModule, deleteAssignment, extendAssignment } from "../services/assignments";
 
 export default function AsignarCurso() {
   const [users, setUsers] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [modules, setModules] = useState([]);
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedModule, setSelectedModule] = useState("");
   const [days, setDays] = useState(30);
+  const [modo, setModo] = useState("curso"); // "curso" | "modulo"
 
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [extendingId, setExtendingId] = useState(null); // id de asignación en modo extender
+  const [extendDays, setExtendDays] = useState(30);
 
   // Estados para búsqueda de alumnos
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,9 +56,10 @@ export default function AsignarCurso() {
   const cargarBase = async () => {
     try {
       setLoading(true);
-      const [u, c] = await Promise.all([listUsers(), listCourses()]);
+      const [u, c, m] = await Promise.all([listUsers(), listCourses(), listModules()]);
       setUsers(u);
       setCourses(c);
+      setModules(Array.isArray(m) ? m : []);
     } catch {
       showToast("error", "Error cargando listas");
     } finally {
@@ -90,29 +96,42 @@ export default function AsignarCurso() {
 
   const asignar = async () => {
     if (!selectedUser) return showToast("warn", "Selecciona un alumno");
-    if (!selectedCourse) return showToast("warn", "Selecciona un curso");
 
-    try {
-      setLoading(true);
-
-      // Crear la asignación con la fecha de expiración
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + days);
-
-      await createAssignment({
-        userId: selectedUser,
-        courseId: selectedCourse,
-        expiresAt: expiresAt.toISOString()
-      });
-
-      await cargarAsignaciones(selectedUser);
-      showToast("success", "Curso asignado correctamente", 3000);
-      setSelectedCourse("");
-    } catch (e) {
-      const msg = e?.response?.data?.mensaje || e?.response?.data?.message || "Error al asignar";
-      showToast("error", msg);
-    } finally {
-      setLoading(false);
+    if (modo === "curso") {
+      if (!selectedCourse) return showToast("warn", "Selecciona un curso");
+      try {
+        setLoading(true);
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + days);
+        await createAssignment({ userId: selectedUser, courseId: selectedCourse, expiresAt: expiresAt.toISOString() });
+        await cargarAsignaciones(selectedUser);
+        showToast("success", "Curso asignado correctamente", 3000);
+        setSelectedCourse("");
+      } catch (e) {
+        const msg = e?.response?.data?.mensaje || e?.response?.data?.message || "Error al asignar";
+        showToast("error", msg);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      if (!selectedModule) return showToast("warn", "Selecciona un módulo");
+      try {
+        setLoading(true);
+        const result = await assignModule({ userId: selectedUser, moduleName: selectedModule, days });
+        await cargarAsignaciones(selectedUser);
+        const { asignados = 0, duplicados = 0, totalCursos = 0 } = result;
+        if (asignados === 0 && duplicados > 0) {
+          showToast("warn", `Todos los cursos del módulo ya estaban asignados (${duplicados})`, 3500);
+        } else {
+          showToast("success", `Módulo asignado: ${asignados} curso(s) nuevo(s)${duplicados > 0 ? `, ${duplicados} ya existían` : ""}`, 3500);
+        }
+        setSelectedModule("");
+      } catch (e) {
+        const msg = e?.response?.data?.mensaje || e?.response?.data?.message || "Error al asignar módulo";
+        showToast("error", msg);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -129,6 +148,22 @@ export default function AsignarCurso() {
     }
   };
 
+  const extender = async (assignmentId) => {
+    if (!extendDays || extendDays < 1) return showToast("warn", "Ingresa un número de días válido");
+    try {
+      setLoading(true);
+      await extendAssignment(assignmentId, extendDays);
+      setExtendingId(null);
+      setExtendDays(30);
+      await cargarAsignaciones(selectedUser);
+      showToast("success", `Acceso extendido por ${extendDays} día(s)`);
+    } catch {
+      showToast("error", "Error al extender el acceso");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full">
       {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
@@ -139,6 +174,30 @@ export default function AsignarCurso() {
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
             <UserPlus className="text-green-600 flex-shrink-0" size={24} />
             <h2 className="text-lg sm:text-xl font-bold text-gray-700 text-center sm:text-left">Asignar Curso</h2>
+          </div>
+
+          {/* Tabs modo asignación */}
+          <div className="flex rounded-lg border border-gray-200 overflow-hidden mb-5 sm:mb-6">
+            <button
+              onClick={() => { setModo("curso"); setSelectedModule(""); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+                modo === "curso"
+                  ? "bg-green-600 text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              <BookOpen size={16} /> Por Curso
+            </button>
+            <button
+              onClick={() => { setModo("modulo"); setSelectedCourse(""); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+                modo === "modulo"
+                  ? "bg-green-600 text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              <Layers size={16} /> Por Módulo
+            </button>
           </div>
 
           <div className="space-y-5 sm:space-y-6">
@@ -172,27 +231,56 @@ export default function AsignarCurso() {
               )}
             </div>
 
-            <div>
-              <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">Selecciona Curso</label>
-              <select
-                value={selectedCourse}
-                onChange={(e) => setSelectedCourse(e.target.value)}
-                className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 text-sm sm:text-base focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-colors bg-white"
-              >
-                <option value="">— Elegir curso —</option>
-                {courses.map(c => (
-                  <option key={c._id} value={c._id}>
-                    {c.titulo} {c.categoria && `— ${c.categoria}`}
-                  </option>
-                ))}
-              </select>
-              {courses.length === 0 && (
-                <p className="text-xs sm:text-sm text-amber-600 mt-2 flex items-center gap-1">
-                  <span>⚠️</span>
-                  <span>No hay cursos creados. Ve a "Crear Curso" para agregar cursos primero.</span>
-                </p>
-              )}
-            </div>
+            {modo === "curso" ? (
+              <div>
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">Selecciona Curso</label>
+                <select
+                  value={selectedCourse}
+                  onChange={(e) => setSelectedCourse(e.target.value)}
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 text-sm sm:text-base focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-colors bg-white"
+                >
+                  <option value="">— Elegir curso —</option>
+                  {courses.map(c => (
+                    <option key={c._id} value={c._id}>
+                      {c.titulo} {c.categoria && `— ${c.categoria}`}
+                    </option>
+                  ))}
+                </select>
+                {courses.length === 0 && (
+                  <p className="text-xs sm:text-sm text-amber-600 mt-2 flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>No hay cursos creados. Ve a "Crear Curso" para agregar cursos primero.</span>
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
+                  Selecciona Módulo
+                </label>
+                <select
+                  value={selectedModule}
+                  onChange={(e) => setSelectedModule(e.target.value)}
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 text-sm sm:text-base focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-colors bg-white"
+                >
+                  <option value="">— Elegir módulo —</option>
+                  {modules.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                {modules.length === 0 && (
+                  <p className="text-xs sm:text-sm text-amber-600 mt-2 flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>No hay módulos disponibles. Asegúrate de que los cursos tengan módulo asignado.</span>
+                  </p>
+                )}
+                {selectedModule && (
+                  <p className="text-xs text-green-700 mt-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                    Se asignarán <strong>todos los cursos</strong> del módulo <strong>"{selectedModule}"</strong> al alumno seleccionado.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-4">
               <div>
@@ -212,7 +300,7 @@ export default function AsignarCurso() {
 
               <button
                 onClick={asignar}
-                disabled={loading || !selectedUser || !selectedCourse}
+                disabled={loading || !selectedUser || (modo === "curso" ? !selectedCourse : !selectedModule)}
                 className="w-full px-6 py-3.5 sm:py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all text-sm sm:text-base shadow-lg hover:shadow-xl"
               >
                 {loading ? (
@@ -220,8 +308,10 @@ export default function AsignarCurso() {
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     <span>Asignando...</span>
                   </div>
-                ) : (
+                ) : modo === "curso" ? (
                   "✓ Asignar Curso"
+                ) : (
+                  "✓ Asignar Módulo Completo"
                 )}
               </button>
             </div>
@@ -229,7 +319,10 @@ export default function AsignarCurso() {
             <div className="mt-4 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-start gap-2 text-xs sm:text-sm text-green-700">
                 <ShieldCheck size={18} className="text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Asignación segura: el alumno verá el curso asignado en su panel de usuario.</span>
+                {modo === "curso"
+                  ? <span>Asignación segura: el alumno verá el curso asignado en su panel de usuario.</span>
+                  : <span>Se asignarán todos los cursos del módulo a la vez. Si alguno ya estaba asignado, se omitirá sin error.</span>
+                }
               </div>
             </div>
           </div>
@@ -266,6 +359,7 @@ export default function AsignarCurso() {
               {assignments.map(a => {
                 const vencimiento = a.expiresAt ? new Date(a.expiresAt) : null;
                 const vencido = vencimiento ? vencimiento < new Date() : false;
+                const expandido = extendingId === a._id;
                 return (
                   <div key={a._id} className="border rounded-xl p-4 sm:p-4 hover:shadow-md transition-all bg-white">
                     {/* Desktop Layout */}
@@ -297,6 +391,13 @@ export default function AsignarCurso() {
                           Ver PDF
                         </a>
                         <button
+                          onClick={() => { setExtendingId(expandido ? null : a._id); setExtendDays(30); }}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-blue-300 text-blue-700 hover:bg-blue-50 text-sm transition-colors"
+                          title="Extender acceso"
+                        >
+                          <PlusCircle size={16} /> Extender
+                        </button>
+                        <button
                           onClick={() => quitar(a._id)}
                           className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 text-sm transition-colors"
                           title="Quitar asignación"
@@ -305,6 +406,35 @@ export default function AsignarCurso() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Panel extender inline (desktop) */}
+                    {expandido && (
+                      <div className="hidden sm:flex items-center gap-3 mt-3 pt-3 border-t border-blue-100 bg-blue-50 rounded-lg px-4 py-3">
+                        <Clock size={16} className="text-blue-600 flex-shrink-0" />
+                        <span className="text-sm text-blue-700 font-medium whitespace-nowrap">Agregar días:</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={extendDays}
+                          onChange={(e) => setExtendDays(Number(e.target.value))}
+                          className="w-20 border border-blue-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+                        />
+                        <button
+                          onClick={() => extender(a._id)}
+                          disabled={loading}
+                          className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
+                        >
+                          Confirmar
+                        </button>
+                        <button
+                          onClick={() => setExtendingId(null)}
+                          className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
 
                     {/* Mobile Layout */}
                     <div className="sm:hidden space-y-3">
@@ -335,14 +465,54 @@ export default function AsignarCurso() {
                           Ver PDF
                         </a>
                         <button
-                          onClick={() => quitar(a._id)}
-                          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 text-sm font-medium transition-colors"
-                          title="Quitar asignación"
+                          onClick={() => { setExtendingId(expandido ? null : a._id); setExtendDays(30); }}
+                          className="flex items-center justify-center gap-2 px-4 py-2.5 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 text-sm font-medium transition-colors"
                         >
-                          <Trash2 size={16} />
-                          Quitar
+                          <PlusCircle size={16} /> Extender
                         </button>
                       </div>
+
+                      {/* Panel extender inline (mobile) */}
+                      {expandido && (
+                        <div className="flex flex-col gap-2 pt-2 border-t border-blue-100 bg-blue-50 rounded-lg px-3 py-3">
+                          <div className="flex items-center gap-2">
+                            <Clock size={15} className="text-blue-600" />
+                            <span className="text-sm text-blue-700 font-medium">Días a agregar:</span>
+                          </div>
+                          <input
+                            type="number"
+                            min={1}
+                            max={365}
+                            value={extendDays}
+                            onChange={(e) => setExtendDays(Number(e.target.value))}
+                            className="w-full border border-blue-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => extender(a._id)}
+                              disabled={loading}
+                              className="py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
+                            >
+                              Confirmar
+                            </button>
+                            <button
+                              onClick={() => setExtendingId(null)}
+                              className="py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => quitar(a._id)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 text-sm font-medium transition-colors"
+                        title="Quitar asignación"
+                      >
+                        <Trash2 size={16} />
+                        Quitar
+                      </button>
                     </div>
                   </div>
                 );

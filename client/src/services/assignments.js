@@ -27,3 +27,13 @@ export const getAssignmentDetail = async (assignmentId) => {
   const { data } = await api.get(`${API_URL}/${assignmentId}`);
   return data;
 };
+
+export const extendAssignment = async (assignmentId, days) => {
+  const { data } = await api.patch(`${API_URL}/${assignmentId}/extend`, { days });
+  return data;
+};
+
+export const assignModule = async (assignmentData) => {
+  const { data } = await api.post(`${API_URL}/module`, assignmentData);
+  return data;
+};

@@ -16,7 +16,7 @@ const obtenerUsuarios = async (_req, res) => {
 // POST /api/usuarios
 const crearUsuario = async (req, res) => {
   try {
-    const { dni, apellido, nombre, correo, telefono } = req.body;
+    const { dni, apellido, nombre, correo, correoPersonal, telefono } = req.body;
 
     // ✅ Verificar si el DNI ya existe
     const usuarioExistenteDNI = await Usuario.findOne({ dni });
@@ -46,6 +46,7 @@ const crearUsuario = async (req, res) => {
       apellido: (apellido || "").toLowerCase().normalize('NFC'),
       nombre: nombre.toLowerCase().normalize('NFC'),
       correo: correoCompleto, // Ya está normalizado en línea 31
+      correoPersonal: correoPersonal || "",
       celular: telefono || "",
       password: hashedPassword, // Guardar la contraseña hasheada
       rol: "user",
