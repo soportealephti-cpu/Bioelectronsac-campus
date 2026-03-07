@@ -10,7 +10,8 @@ const certificateSchema = new mongoose.Schema(
     // correlativo final (AA + 4 dígitos)
     number: { type: String, required: true, index: true },
 
-    emitDate: { type: Date, default: Date.now },
+    emitDate:  { type: Date, default: Date.now },
+    startDate: { type: Date, default: null },
 
     // --- SNAPSHOT (inmutable) ---
     studentName: { type: String, required: true },

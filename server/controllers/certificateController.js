@@ -89,6 +89,22 @@ function fechaLarga(iso) {
   return `Lima, ${String(d.getDate()).padStart(2, "0")} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
 }
 
+function fechaCorta(iso) {
+  const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  let d;
+  if (iso) {
+    if (typeof iso === 'string' && iso.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = iso.split('-').map(Number);
+      d = new Date(year, month - 1, day);
+    } else {
+      d = new Date(iso);
+    }
+  } else {
+    d = new Date();
+  }
+  return `${String(d.getDate()).padStart(2, "0")} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
+}
+
 function horasPorCurso(titulo = "") {
   const t = (titulo || "").toLowerCase();
   if (t.includes("actualización")) return 5;
@@ -326,9 +342,20 @@ exports.emit = async (req, res) => {
       return res.status(404).json({ mensaje: "Usuario o curso no encontrado" });
     }
 
+    // Buscar la asignación para obtener la fecha de inicio
+    const asgForEmit = await Assignment.findOne({
+      $or: [
+        { user: userId,   course: courseId },
+        { userId: userId, course: courseId },
+        { user: userId,   courseId: courseId },
+        { userId: userId, courseId: courseId },
+      ],
+    }).lean();
+
     const certDoc = {
       template: tpl._id,
       emitDate: emitDate ? new Date(emitDate) : new Date(),
+      startDate: asgForEmit?.assignedAt || null,
       number: finalNumber,
       // Campos requeridos para el Certificate
       studentName: `${user.nombre || ''} ${user.apellido || ''}`.trim().normalize('NFC') || 'Estudiante',
@@ -440,6 +467,24 @@ exports.renderPdf = async (req, res) => {
     console.log(`   - backgroundUrl: ${fondoUrl}`);
     console.log(`   - firmaUrl: ${firmaUrl}`);
     console.log(`   - gerenteNombre: ${gerente}`);
+
+    // Obtener startDate: primero del certificado, luego buscar en la asignación (retrocompatibilidad)
+    let startDate = cert.startDate;
+    if (!startDate) {
+      const userRef   = userDoc?._id || cert.user || cert.userId;
+      const courseRef = courseDoc?._id || cert.course || cert.courseId;
+      if (userRef && courseRef) {
+        const asgLookup = await Assignment.findOne({
+          $or: [
+            { user: userRef,   course: courseRef },
+            { user: userRef,   courseId: courseRef },
+            { userId: userRef, course: courseRef },
+            { userId: userRef, courseId: courseRef },
+          ],
+        }).lean();
+        startDate = asgLookup?.assignedAt || null;
+      }
+    }
 
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([841.89, 595.28]); // A4 landscape
@@ -610,6 +655,24 @@ exports.renderPdf = async (req, res) => {
       } catch (_) {}
     }
 
+    // 📅 FECHAS DE INICIO Y FIN (pequeño, al pie del certificado, centrado)
+    if (startDate) {
+      const inicioTxt = `Fecha de inicio: ${fechaCorta(startDate)}`;
+      const finTxt    = `Fecha de finalización: ${fechaCorta(cert.emitDate)}`;
+      const separador = "   ·   ";
+      const datesLine = inicioTxt + separador + finTxt;
+      const datesFont = fontArchTH || fontRegular;
+      const datesSize = 8.5;
+      const datesW    = datesFont.widthOfTextAtSize(datesLine, datesSize);
+      page.drawText(datesLine, {
+        x: (width - datesW) / 2,
+        y: 8,
+        size: datesSize,
+        font: datesFont,
+        color: rgb(0.35, 0.35, 0.35),
+      });
+    }
+
     const bytes = await pdfDoc.save();
     await fs.promises.writeFile(pdfPath, bytes);
     res.setHeader("Content-Type", "application/pdf");
@@ -760,6 +823,7 @@ exports.ensureForAssignment = async (req, res) => {
     const certDoc = {
       template: tpl._id,
       emitDate: now,
+      startDate: asg?.assignedAt || null,
       number,
       // Campos requeridos para el Certificate
       studentName: `${user.nombre || ''} ${user.apellido || ''}`.trim().normalize('NFC') || 'Estudiante',
